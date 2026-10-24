@@ -1,73 +1,42 @@
 // src/utils/parser.js
-// Industrial RegEx parser with automatic hardware failure detection
+// Przemysłowy parser RegEx z automatycznym wykrywaniem awarii sprzętu
 
 import { createLogger } from './logger.js';
 
 const log = createLogger('parser');
 
 /**
- * Parses raw legacy laboratory measurement printout stream.
- * Supports standard measurement frames and explicit hardware error statuses ('err').
+ * Parsuje surowy strumień wydruku ze starego aparatu laboratoryjnego.
+ * Obsługuje standardowe ramki pomiarowe oraz jawne statusy awarii sprzętu ('err').
  * @param {string} rawText 
- * @returns {{ density: number|string, temperature: number|string, fuelStatus: string, gestosc: number|string, temperatura: number|string, status_paliwa: string }}
+ * @returns {{ density: number|string, temperature: number|string, fuelStatus: 'NORMAL'|'OUT_OF_SPEC'|'CORRUPTED_TRANSMISSION'|'DEVICE_FAULT' }}
  */
 export function parseLegacyDeviceOutput(rawText) {
   const text = rawText || '';
 
-  // 1. HARDWARE FAILURE DETECTION (Device reports explicit 'err' / 'error')
+  // 1. WYKRYWANIE AWARII SPRZĘTU (aparat zgłasza jawnie 'err' / 'error')
   if (text.toLowerCase().includes('err') || text.toLowerCase().includes('error')) {
     log.warn('device.error_status', { reason: 'device printout contains err/error' });
-    const errStatus = 'AWARIA APARATU (ERR)';
-    return {
-      density: 'ERR',
-      temperature: 'ERR',
-      fuelStatus: errStatus,
-      // Backward compatibility aliases
-      gestosc: 'ERR',
-      temperatura: 'ERR',
-      status_paliwa: errStatus
-    };
+    return { density: 'ERR', temperature: 'ERR', fuelStatus: 'DEVICE_FAULT' };
   }
 
-  // Regular expressions matching numerical parameters
+  // Wyrażenia regularne wyciągające parametry liczbowe
   const densityRegex = /GESTOSC:\s*([0-9.]+)\s*KG\/M3/i;
   const tempRegex = /TEMP:\s*([0-9.]+)\s*C/i;
 
   const densityMatch = text.match(densityRegex);
   const tempMatch = text.match(tempRegex);
 
-  // 2. CORRUPTED FRAME DETECTION (Missing required keywords)
+  // 2. WYKRYWANIE USZKODZONEJ RAMKI (brak wymaganych słów kluczowych)
   if (!densityMatch || !tempMatch) {
-    const corruptStatus = 'USZKODZONA TRANSMISJA';
-    return {
-      density: 'ERR',
-      temperature: 'ERR',
-      fuelStatus: corruptStatus,
-      gestosc: 'ERR',
-      temperatura: 'ERR',
-      status_paliwa: corruptStatus
-    };
+    return { density: 'ERR', temperature: 'ERR', fuelStatus: 'CORRUPTED_TRANSMISSION' };
   }
 
   const density = parseFloat(densityMatch[1]);
   const temperature = parseFloat(tempMatch[1]);
 
-  // Threshold monitor: Laboratory standard compliance (820-845 kg/m3 for Diesel)
-  let fuelStatus = 'W NORMIE';
-  if (density < 820 || density > 845) {
-    fuelStatus = 'PRZEKROCZONE PARAMETRY';
-  }
+  // Monitor progów: zgodność z normą laboratoryjną (820-845 kg/m3 dla oleju napędowego)
+  const fuelStatus = density < 820 || density > 845 ? 'OUT_OF_SPEC' : 'NORMAL';
 
-  return {
-    density,
-    temperature,
-    fuelStatus,
-    // Backward compatibility aliases
-    gestosc: density,
-    temperatura: temperature,
-    status_paliwa: fuelStatus
-  };
+  return { density, temperature, fuelStatus };
 }
-
-// Backward compatibility alias
-export const parsujWydrukStaregoAparatu = parseLegacyDeviceOutput;

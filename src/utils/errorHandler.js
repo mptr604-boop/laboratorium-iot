@@ -1,5 +1,5 @@
 // src/utils/errorHandler.js
-// Global fail-safe telemetry and process-level exception boundary
+// Globalna telemetria błędów i ochrona przed wyjątkami na poziomie procesu
 
 import { dbOperations } from '../models/db.operations.js';
 import { anomalyMonitor } from './anomalyMonitor.js';
@@ -10,7 +10,7 @@ const log = createLogger('process');
 
 export function initializeGlobalErrorHandler() {
   
-  // 1. UNCAUGHT EXCEPTION BOUNDARY (e.g. ReferenceError, TypeError)
+  // 1. NIEOBSŁUŻONE WYJĄTKI (np. ReferenceError, TypeError)
   process.on('uncaughtException', (err) => {
     log.error('uncaught_exception', { err });
 
@@ -23,7 +23,7 @@ export function initializeGlobalErrorHandler() {
     anomalyMonitor.registerIncident('ERR_CODE_APPLICATION_CRASH', `File: ${err.stack ? err.stack.split('\n')[1].trim() : 'Unknown'}`);
   });
 
-  // 2. UNHANDLED REJECTION BOUNDARY (Async/Await Promises)
+  // 2. NIEOBSŁUŻONE ODRZUCENIA (Promise, async/await)
   process.on('unhandledRejection', (reason) => {
     const reasonMessage = reason instanceof Error ? reason.message : String(reason);
     log.error('unhandled_rejection', { err: reason instanceof Error ? reason : reasonMessage });
@@ -40,5 +40,5 @@ export function initializeGlobalErrorHandler() {
   log.info('crash_handler.armed');
 }
 
-// Backward compatibility alias
+// Alias zachowujący kompatybilność wsteczną
 export const inicjalizujGlobalnyErrorHandler = initializeGlobalErrorHandler;

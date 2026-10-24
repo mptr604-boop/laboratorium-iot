@@ -1,5 +1,5 @@
 // src/controllers/lab.controller.js
-// Production LIMS operational controller integrated with WAL SQLite, NoSQL document store, and Telemetry
+// Kontroler operacyjny LIMS: SQLite WAL, dokumentowy zapis NoSQL i telemetria
 
 import crypto from 'node:crypto';
 import { parseMultipartFormData } from '../utils/uploader.js';
@@ -41,7 +41,7 @@ export const labController = {
       const body = await parseRequestBody(req);
       const user = dbOperations.getUserByUsername(body.username);
       if (!user) {
-        // Unknown user: the typed value may be a mistyped password, so only a hash is logged.
+        // Nieznany użytkownik: wpisana wartość może być błędnie wpisanym hasłem, więc logujemy tylko jej hash.
         log.warn('login.failed', { reason: 'unknown_user', username_hash: fingerprint(body.username) });
         res.writeHead(302, { 'Location': '/login?error=' + encodeURIComponent('Nieprawidłowy login lub hasło') });
         return res.end();
@@ -89,7 +89,7 @@ export const labController = {
     }
   },
 
-  // POST /api/measurements/create (Fail-safe measurement recording with IoT telemetry)
+  // POST /api/measurements/create (odporny na awarie zapis pomiaru z telemetrią IoT)
   createMeasurement: async (req, res) => {
     const currentUser = checkRoleAndPermissions(req, ['admin', 'badacz_super', 'senior_researcher', 'badacz', 'researcher']);
     if (!currentUser) {
@@ -117,13 +117,13 @@ export const labController = {
       }
 
       const cleanText = rawText.replace(/\\n/g, '\n');
-      let density = 0, temperature = 0, fuelStatus = 'BŁĄD PARSERA', isHardwareFault = false;
+      let density = 0, temperature = 0, fuelStatus = 'PARSER_ERROR', isHardwareFault = false;
       
       try {
         const parsed = parseLegacyDeviceOutput(cleanText);
-        if (parsed.density === 'ERR' || parsed.fuelStatus.includes('AWARIA')) {
+        if (parsed.density === 'ERR' || parsed.fuelStatus === 'DEVICE_FAULT') {
           isHardwareFault = true;
-          fuelStatus = 'AWARIA APARATU (ERR)';
+          fuelStatus = 'DEVICE_FAULT';
         } else {
           density = parseFloat(parsed.density);
           temperature = parseFloat(parsed.temperature);
@@ -131,7 +131,7 @@ export const labController = {
         }
       } catch { 
         isHardwareFault = true;
-        fuelStatus = 'AWARIA APARATU (ERR)';
+        fuelStatus = 'DEVICE_FAULT';
       }
 
       if (isHardwareFault) {
@@ -142,7 +142,7 @@ export const labController = {
         raw_text: cleanText, 
         parsed_density: isHardwareFault ? 'ERR' : density, 
         parsed_temperature: isHardwareFault ? 'ERR' : temperature, 
-        status_paliwa: fuelStatus, 
+        fuel_status: fuelStatus,
         comments: [],
         file_attachment: attachmentData
       };
@@ -159,7 +159,7 @@ export const labController = {
     }
   },
 
-  // POST /api/measurements/delete (Enforces Own vs Foreign record permission rules)
+  // POST /api/measurements/delete (wymusza reguły: własny a cudzy rekord)
   deleteMeasurement: async (req, res) => {
     const currentUser = checkRoleAndPermissions(req, ['admin', 'badacz_super', 'senior_researcher', 'badacz', 'researcher']);
     if (!currentUser) {
@@ -190,7 +190,7 @@ export const labController = {
     }
   },
 
-  // POST /api/measurements/comment (Async engineer audit notes)
+  // POST /api/measurements/comment (asynchroniczne notatki audytowe inżyniera)
   addComment: async (req, res) => {
     const currentUser = checkRoleAndPermissions(req, ['admin', 'badacz_super', 'senior_researcher', 'badacz', 'researcher', 'przegladajacy', 'auditor', 'viewer']);
     if (!currentUser) {
@@ -220,7 +220,7 @@ export const labController = {
     }
   },
 
-  // POST /api/infrastructure/ack (Acknowledge and dismiss critical banner alert)
+  // POST /api/infrastructure/ack (potwierdzenie i zamknięcie krytycznego alertu)
   ackInfrastructureAlert: async (req, res) => {
     const currentUser = checkRoleAndPermissions(req, ['admin', 'badacz_super', 'senior_researcher']);
     if (!currentUser) {

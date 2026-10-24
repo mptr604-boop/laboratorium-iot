@@ -1,5 +1,5 @@
 // src/test/logger.test.js
-// Unit tests for the structured logger plus an end-to-end check of request correlation IDs.
+// Testy jednostkowe loggera strukturalnego oraz test end-to-end identyfikatorów korelacji żądań.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

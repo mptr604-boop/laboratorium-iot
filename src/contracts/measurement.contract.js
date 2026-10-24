@@ -1,15 +1,15 @@
 // src/contracts/measurement.contract.js
-// Single source of truth for what a saved measurement document may look like.
-// Read it as documentation; it is also executed by saveMeasurement() for every entry path (TCP and HTTP).
+// Jedno źródło prawdy o tym, jak może wyglądać zapisany dokument pomiaru.
+// Czytaj to jako dokumentację; saveMeasurement() wykonuje je też dla każdej ścieżki wejścia (TCP i HTTP).
 
 export const HARDWARE_ERROR = 'ERR';
 
 export const FUEL_STATUSES = [
-  'W NORMIE',
-  'PRZEKROCZONE PARAMETRY',
-  'USZKODZONA TRANSMISJA',
-  'AWARIA APARATU (ERR)',
-  'BŁĄD PARSERA',
+  'NORMAL',
+  'OUT_OF_SPEC',
+  'CORRUPTED_TRANSMISSION',
+  'DEVICE_FAULT',
+  'PARSER_ERROR',
 ];
 
 export const measurementContract = {
@@ -37,7 +37,7 @@ export const measurementContract = {
     allowHardwareError: true,
     description: 'Sample temperature; "ERR" means the instrument reported a fault.',
   },
-  status_paliwa: {
+  fuel_status: {
     type: 'string',
     required: true,
     oneOf: FUEL_STATUSES,
@@ -75,7 +75,7 @@ function checkField(name, spec, value) {
   return null;
 }
 
-/** Returns { ok, errors[] }. Fields not listed in the contract are rejected too. */
+/** Zwraca { ok, errors[] }. Pola spoza kontraktu są także odrzucane. */
 export function validateMeasurement(doc) {
   if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) {
     return { ok: false, errors: ['document: expected object'] };
@@ -99,7 +99,7 @@ export class ContractViolationError extends Error {
   }
 }
 
-/** Markdown table generated from the contract, so documentation cannot drift from the code. */
+/** Tabela Markdown generowana z kontraktu, więc dokumentacja nie rozjedzie się z kodem. */
 export function describeContract() {
   const rows = Object.entries(measurementContract).map(([name, s]) => {
     const rules = [

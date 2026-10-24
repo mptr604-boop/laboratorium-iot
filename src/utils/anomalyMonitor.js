@@ -1,36 +1,36 @@
 // src/utils/anomalyMonitor.js
-// Windowed Rate-Limiting Anomaly Alerting Engine
+// Silnik alertów anomalii z oknem czasowym (limit częstotliwości)
 
 import { createLogger } from './logger.js';
 
 const log = createLogger('anomaly');
 
-// In-memory registry tracking error timestamps for sliding-window anomaly detection
+// Rejestr w pamięci z czasami błędów do wykrywania anomalii w oknie przesuwnym
 const incidentRegistry = {
   ERR_CODE_HARDWARE_FAILURE: [],
   ERR_CODE_APPLICATION_CRASH: [],
-  // Legacy aliases
+  // Stare aliasy
   KOD_AWARIA_SPRZETU: [],
   KOD_BLAD_PROGRAMISTYCZNY: []
 };
 
-// Window configuration: 3 incidents within 30 seconds triggers critical alert
+// Konfiguracja okna: 3 incydenty w 30 sekund wywołują alert krytyczny
 const MAX_INCIDENTS = 3;
 const TIME_WINDOW_MS = 30000; 
 
-// Active alerts for dashboard broadcast and PWA push
+// Aktywne alerty dla dashboardu i powiadomień PWA
 let activeInfrastructureAlerts = [];
 
 export const anomalyMonitor = {
   /**
-   * Registers incident and evaluates rate within sliding window.
+   * Rejestruje incydent i ocenia częstotliwość w oknie przesuwnym.
    * @param {string} errType - 'ERR_CODE_HARDWARE_FAILURE' or 'ERR_CODE_APPLICATION_CRASH'
-   * @param {string} contextMessage - Descriptive context (e.g. method or device ID)
+   * @param {string} contextMessage - opis kontekstu (np. metoda lub ID urządzenia)
    */
   registerIncident: (errType, contextMessage) => {
     const now = Date.now();
     
-    // Normalize error type
+    // Normalizacja typu błędu
     const normalizedType = errType === 'KOD_AWARIA_SPRZETU' ? 'ERR_CODE_HARDWARE_FAILURE'
       : errType === 'KOD_BLAD_PROGRAMISTYCZNY' ? 'ERR_CODE_APPLICATION_CRASH'
       : errType;
@@ -41,7 +41,7 @@ export const anomalyMonitor = {
 
     incidentRegistry[normalizedType].push(now);
 
-    // Sliding window filter: purge entries older than window duration
+    // Filtr okna przesuwnego: usuwa wpisy starsze niż okno
     incidentRegistry[normalizedType] = incidentRegistry[normalizedType].filter(timestamp => now - timestamp <= TIME_WINDOW_MS);
 
     log.warn('incident.registered', {
@@ -50,7 +50,7 @@ export const anomalyMonitor = {
       threshold: MAX_INCIDENTS,
     });
 
-    // Trigger alert if threshold exceeded
+    // Alert po przekroczeniu progu
     if (incidentRegistry[normalizedType].length >= MAX_INCIDENTS) {
       const alertId = `alert_${Math.random().toString(36).substr(2, 9)}`;
       
@@ -74,21 +74,21 @@ export const anomalyMonitor = {
   },
 
   /**
-   * Returns active alert list
+   * Zwraca listę aktywnych alertów
    */
   getActiveAlerts: () => {
     return activeInfrastructureAlerts;
   },
 
   /**
-   * Acknowledges and dismisses an alert by ID
+   * Potwierdza i zamyka alert o podanym ID
    */
   clearAlert: (alertId) => {
     activeInfrastructureAlerts = activeInfrastructureAlerts.filter(a => a.id !== alertId);
     log.info('alert.acknowledged', { alert_id: alertId });
   },
 
-  // Backward compatibility aliases
+  // Aliasy zachowujące kompatybilność wsteczną
   rejestrujIncydent: (errType, msg) => anomalyMonitor.registerIncident(errType, msg),
   pobierzAktywneAlerty: () => anomalyMonitor.getActiveAlerts(),
   wyczyscAlert: (alertId) => anomalyMonitor.clearAlert(alertId)

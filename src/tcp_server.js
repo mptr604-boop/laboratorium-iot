@@ -36,7 +36,7 @@ const server = net.createServer((socket) => {
             raw_text: rawPrintout,
             parsed_density: parsedData.density,
             parsed_temperature: parsedData.temperature,
-            status_paliwa: parsedData.fuelStatus,
+            fuel_status: parsedData.fuelStatus,
             comments: []
           };
 
@@ -55,7 +55,7 @@ const server = net.createServer((socket) => {
             socket.write('[RESPONSE]|STATUS:INVALID_DATA|[END]');
           }
         } else {
-          // Only a hash of the token is logged, so repeated bad tokens can be correlated safely.
+          // Logujemy tylko hash tokena, więc powtarzające się złe tokeny można bezpiecznie powiązać.
           connLog.warn('frame.rejected', { reason: 'invalid_device_token', credential_hash: fingerprint(deviceToken) });
           socket.write('[RESPONSE]|STATUS:AUTH_FAILED|[END]');
         }

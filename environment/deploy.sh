@@ -32,7 +32,7 @@ odpal_kontenery() {
     export APP_VERSION_TAG=$WERSJA_TAG
     export NODE_ENV=$env_mode
     
-    # POPRAWKA: Wymuszamy uruchomienie przez sudo wewnątrz skryptu
+    # Wymuszamy uruchomienie przez sudo wewnątrz skryptu
     sudo docker compose -f environment/docker-compose.yml up -d --build
 }
 

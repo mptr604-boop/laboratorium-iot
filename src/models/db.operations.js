@@ -23,13 +23,13 @@ db.exec(`
     device_id INTEGER NOT NULL, 
     user_id INTEGER NOT NULL, 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- DODANO: Rejestracja czasu modyfikacji NoSQL
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- Czas modyfikacji dokumentu NoSQL
     nosql_data TEXT NOT NULL, 
     FOREIGN KEY(device_id) REFERENCES devices(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
   
-  CREATE TABLE IF NOT EXISTS detektyw_bugs (
+  CREATE TABLE IF NOT EXISTS detective_bugs (
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     environment TEXT NOT NULL, 
     error_context TEXT NOT NULL, 
@@ -94,7 +94,7 @@ export const dbOperations = {
     currentData.comments = currentData.comments || [];
     currentData.comments.push(commentObj);
     
-    // POPRAWKA: Jawnym poleceniem odświeżamy kolumnę updated_at czasem UTC bazy danych
+    // Jawnie odświeżamy updated_at czasem UTC bazy danych
     const updateStmt = db.prepare(`
       UPDATE measurements 
       SET nosql_data = ?, updated_at = CURRENT_TIMESTAMP 
@@ -159,10 +159,7 @@ export const dbOperations = {
   },
 
   logDetectiveBug: (env, context) => {
-    const stmt = db.prepare('INSERT INTO detektyw_bugs (environment, error_context) VALUES (?, ?)');
+    const stmt = db.prepare('INSERT INTO detective_bugs (environment, error_context) VALUES (?, ?)');
     return stmt.run(env, context);
-  },
-
-  // Backward compatibility alias
-  logDetektywBug: (env, context) => dbOperations.logDetectiveBug(env, context)
+  }
 };

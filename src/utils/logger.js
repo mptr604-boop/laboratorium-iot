@@ -1,6 +1,6 @@
 // src/utils/logger.js
-// Native structured logger (JSON lines): levels, per-request correlation ID, secret redaction.
-// Zero dependencies: node:async_hooks + node:crypto only.
+// Natywny logger strukturalny (linie JSON): poziomy, ID korelacji na żądanie, maskowanie sekretów.
+// Zero zależności: tylko node:async_hooks i node:crypto.
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash, randomUUID } from 'node:crypto';
@@ -11,19 +11,19 @@ const MAX_DEPTH = 4;
 
 const requestContext = new AsyncLocalStorage();
 
-// Output goes through a replaceable sink, so tests can capture log lines.
+// Wyjście idzie przez wymienialny sink, więc testy mogą przechwytywać linie logów.
 let sink = (line) => process.stdout.write(line + '\n');
 
 export function setLogSink(fn) {
   sink = fn ?? ((line) => process.stdout.write(line + '\n'));
 }
 
-// Read on every call so LOG_LEVEL can be changed without restarting (and in tests).
+// Czytane przy każdym wywołaniu, więc LOG_LEVEL można zmienić bez restartu (także w testach).
 function activeLevel() {
   return LEVELS[(process.env.LOG_LEVEL || 'info').toLowerCase()] ?? LEVELS.info;
 }
 
-/** Runs fn with a correlation ID attached to every log line emitted inside (also across awaits). */
+/** Uruchamia fn z ID korelacji dołączanym do każdej linii logu emitowanej w środku (także po await). */
 export function withRequestContext(context, fn) {
   return requestContext.run(context, fn);
 }
@@ -32,13 +32,13 @@ export function getRequestId() {
   return requestContext.getStore()?.requestId;
 }
 
-/** Accepts a client-supplied X-Request-Id only if it is short and harmless; otherwise generates one. */
+/** Przyjmuje X-Request-Id od klienta tylko gdy jest krótki i bezpieczny; w przeciwnym razie generuje własny. */
 export function resolveRequestId(headerValue) {
   const candidate = Array.isArray(headerValue) ? headerValue[0] : headerValue;
   return typeof candidate === 'string' && /^[\w.-]{8,64}$/.test(candidate) ? candidate : randomUUID();
 }
 
-/** Short stable hash: lets you correlate repeated bad tokens without ever logging the token itself. */
+/** Krótki, stabilny hash: pozwala powiązać powtarzające się złe tokeny bez logowania samego tokena. */
 export function fingerprint(value) {
   return createHash('sha256').update(String(value ?? '')).digest('hex').slice(0, 8);
 }
@@ -84,13 +84,13 @@ function write(level, component, baseFields, msg, fields) {
   try {
     sink(process.env.LOG_FORMAT === 'pretty' ? formatPretty(entry) : JSON.stringify(entry));
   } catch {
-    // Logging must never crash the application.
+    // Logowanie nigdy nie może przewrócić aplikacji.
   }
 }
 
 /**
- * Creates a logger bound to a component name (and optional constant fields, e.g. connection_id).
- * Usage: log.info('measurement.saved', { device_id: 3 });
+ * Tworzy logger przypisany do nazwy komponentu (i opcjonalnych stałych pól, np. connection_id).
+ * Użycie: log.info('measurement.saved', { device_id: 3 });
  */
 export function createLogger(component, baseFields = {}) {
   return {

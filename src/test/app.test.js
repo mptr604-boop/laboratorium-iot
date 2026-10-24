@@ -1,5 +1,5 @@
 // src/test/app.test.js
-// Automated test suite covering business access control (RBAC), cache engine, parser, and JWT
+// Testy automatyczne: kontrola dostępu (RBAC), cache, parser i JWT
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,7 +8,7 @@ import { parseLegacyDeviceOutput } from '../utils/parser.js';
 import { generateJWT, verifyJWT } from '../utils/jwt.js';
 import { redisLikeCache } from '../utils/cache.js';
 
-// Mock database operations to verify business deletion rules without modifying SQLite state
+// Atrapa operacji na bazie, żeby sprawdzić reguły usuwania bez zmiany stanu SQLite
 const mockDbOperations = {
   measurements: [
     { id: 101, user_id: 10, device_name: 'Aparat ON 1', nosql_data: '{"parsed_density":830}' },
@@ -19,13 +19,13 @@ const mockDbOperations = {
   }
 };
 
-// Pure business authorization logic for measurement deletion
+// Czysta logika autoryzacji usuwania pomiaru
 function verifyDeletionPermissions(currentUser, measurement) {
   const allowedRoles = ['admin', 'senior_researcher', 'badacz_super', 'researcher', 'badacz'];
   if (!allowedRoles.includes(currentUser.role)) {
     return false;
   }
-  // Standard researcher can only delete their own records
+  // Zwykły badacz może usuwać tylko własne rekordy
   const isJunior = currentUser.role === 'researcher' || currentUser.role === 'badacz';
   if (isJunior && measurement.user_id !== currentUser.id) {
     return false;
@@ -33,7 +33,7 @@ function verifyDeletionPermissions(currentUser, measurement) {
   return true;
 }
 
-// --- 🧪 RBAC ACCESS PERMISSIONS TESTS ---
+// --- 🧪 TESTY UPRAWNIEŃ RBAC ---
 
 test('Access Control - Researcher can delete own measurement', () => {
   const mockResearcher = { id: 10, username: 'adam_researcher', role: 'researcher' };
@@ -59,7 +59,7 @@ test('Access Control - Senior researcher can delete any measurement', () => {
   assert.equal(isAllowed, true, 'Senior researcher must be allowed to delete any measurement');
 });
 
-// --- 🧪 IN-MEMORY CACHE & INVALIDATION TESTS ---
+// --- 🧪 TESTY CACHE I INWALIDACJI ---
 
 test('Cache Engine - Stores and retrieves value before TTL expiration', () => {
   const key = 'test_html_key';
@@ -85,13 +85,13 @@ test('Cache Engine - Bulk invalidation purges keys matching SQL LIKE wildcard', 
   redisLikeCache.invalidate('view_details_%');
 });
 
-// --- 🧪 REGEX PARSER AND NATIVE JWT TESTS ---
+// --- 🧪 TESTY PARSERA REGEX I NATYWNEGO JWT ---
 
 test('RegEx Parser - Parses density and temperature from raw ASCII stream', () => {
   const parsed = parseLegacyDeviceOutput('RESULT: GESTOSC: 832.4 KG/M3\nRESULT: TEMP: 15.1 C');
   assert.equal(parsed.density, 832.4);
   assert.equal(parsed.temperature, 15.1);
-  assert.equal(parsed.fuelStatus, 'W NORMIE');
+  assert.equal(parsed.fuelStatus, 'NORMAL');
 });
 
 test('Native JWT - Signs payload and verifies token successfully', () => {

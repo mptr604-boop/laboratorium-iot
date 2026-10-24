@@ -1,5 +1,5 @@
 // src/routes/app.router.js
-// Central HTTP request router dispatching SSR views, forms, and REST API actions
+// Centralny router HTTP: widoki SSR, formularze i akcje REST API
 import fs from 'node:fs';
 import path from 'node:path';
 import { labController } from '../controllers/lab.controller.js';
@@ -8,7 +8,7 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('router');
 /**
- * Main HTTP router
+ * Główny router HTTP
  * @param {import('node:http').IncomingMessage} req 
  * @param {import('node:http').ServerResponse} res 
  */
@@ -20,9 +20,9 @@ export async function handleRouting(req, res) {
     res.end(JSON.stringify(payload));
   };
 
-  // --- 1. SSR VIEW ROUTES (GET) ---
+  // --- 1. TRASY WIDOKÓW SSR (GET) ---
   
-  // Root path redirect bypass
+  // Przekierowanie ścieżki głównej
   if (req.method === 'GET' && url.pathname === '/') {
     const cookies = {};
     const cookieHeader = req.headers['cookie'];
@@ -38,58 +38,58 @@ export async function handleRouting(req, res) {
     return res.end();
   }
   
-  // GET /login (Login view)
+  // GET /login (widok logowania)
   if (req.method === 'GET' && url.pathname === '/login') {
     const filePath = path.join(process.cwd(), 'src', 'views', 'login.html');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(fs.readFileSync(filePath, 'utf8'));
   }
 
-  // GET /register (Staff registration view)
+  // GET /register (widok rejestracji personelu)
   if (req.method === 'GET' && url.pathname === '/register') {
     const filePath = path.join(process.cwd(), 'src', 'views', 'register.html');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(fs.readFileSync(filePath, 'utf8'));
   }
 
-  // GET /dashboard (Main laboratory dashboard)
+  // GET /dashboard (główny dashboard laboratorium)
   if (req.method === 'GET' && url.pathname === '/dashboard') {
     return viewController.renderDashboard(req, res);
   }
   
-  // GET /measurements/details (Measurement audit and details)
+  // GET /measurements/details (audyt i szczegóły pomiaru)
   if (req.method === 'GET' && url.pathname === '/measurements/details') {
     return viewController.renderDetails(req, res);
   }
 
-  // --- 2. OPERATIONAL ROUTES (POST / REST API) ---
+  // --- 2. TRASY OPERACYJNE (POST / REST API) ---
   
-  // POST /login (Session processing)
+  // POST /login (obsługa sesji)
   if (req.method === 'POST' && url.pathname === '/login') {
     return await labController.login(req, res);
   }
 
-  // POST /register (Staff onboarding by Admin)
+  // POST /register (rejestracja personelu przez admina)
   if (req.method === 'POST' && url.pathname === '/register') {
     return await labController.register(req, res);
   }
 
-  // POST /api/measurements/create (Save new measurement)
+  // POST /api/measurements/create (zapis nowego pomiaru)
   if (req.method === 'POST' && url.pathname === '/api/measurements/create') {
     return await labController.createMeasurement(req, res);
   }
 
-  // POST /api/measurements/delete (Delete record RBAC)
+  // POST /api/measurements/delete (usunięcie rekordu, RBAC)
   if (req.method === 'POST' && url.pathname === '/api/measurements/delete') {
     return await labController.deleteMeasurement(req, res);
   }
   
-  // POST /api/measurements/comment (Engineer audit notes)
+  // POST /api/measurements/comment (notatki audytowe inżyniera)
   if (req.method === 'POST' && url.pathname === '/api/measurements/comment') {
     return await labController.addComment(req, res);
   }
 
-  // --- PWA STATIC ASSETS ---
+  // --- ZASOBY STATYCZNE PWA ---
   
   // GET /manifest.json
   if (req.method === 'GET' && url.pathname === '/manifest.json') {
@@ -105,12 +105,12 @@ export async function handleRouting(req, res) {
     return res.end(fs.readFileSync(filePath, 'utf8'));
   }
 
-  // POST /api/infrastructure/ack (Dismiss alert)
+  // POST /api/infrastructure/ack (zamknięcie alertu)
   if (req.method === 'POST' && url.pathname === '/api/infrastructure/ack') {
     return await labController.ackInfrastructureAlert(req, res);
   }
 
-  // --- DIAGNOSTIC TEST TRIGGER ---
+  // --- WYZWALACZ TESTU DIAGNOSTYCZNEGO ---
   if (req.method === 'GET' && url.pathname === '/api/test-crash') {
     log.debug('diagnostic.crash_trigger');
     const { dbDetective } = await import('../utils/detective.js');
@@ -124,5 +124,3 @@ export async function handleRouting(req, res) {
   return sendJSON(404, { error: 'Endpoint not found' });
 }
 
-// Backward compatibility alias
-export const obsługujRouting = handleRouting;

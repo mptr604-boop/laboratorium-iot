@@ -1,11 +1,11 @@
 // src/utils/cache.js
-// Native in-memory/SQLite cache engine with TTL and SQL LIKE pattern invalidation
+// Natywny cache w pamięci/SQLite z TTL i inwalidacją wzorcem SQL LIKE
 
 import { db } from '../config/database.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('cache');
-// Initialize cache table schema if not already present
+// Utworzenie tabeli cache, jeśli jeszcze nie istnieje
 db.exec(`
   CREATE TABLE IF NOT EXISTS app_cache (
     cache_key TEXT PRIMARY KEY,
@@ -16,10 +16,10 @@ db.exec(`
 
 export const redisLikeCache = {
   /**
-   * Stores rendered HTML or JSON payload in cache
-   * @param {string} key - Unique key identifier (e.g. 'view_dashboard_page_1')
-   * @param {string|Object} value - Content to cache
-   * @param {number} ttlMs - Time-To-Live in milliseconds
+   * Zapisuje w cache wyrenderowany HTML lub JSON
+   * @param {string} key - Unikalny klucz (e.g. 'view_dashboard_page_1')
+   * @param {string|Object} value - Treść do zapisania
+   * @param {number} ttlMs - czas życia w milisekundach
    */
   set: (key, value, ttlMs = 5000) => {
     const expiresAt = Date.now() + ttlMs;
@@ -32,9 +32,9 @@ export const redisLikeCache = {
   },
 
   /**
-   * Retrieves value from cache, automatically evicting expired entries
+   * Pobiera wartość z cache i automatycznie usuwa wygasłe wpisy
    * @param {string} key
-   * @returns {string|null} Cached content or null on cache miss / expiration
+   * @returns {string|null} Zawartość cache albo null przy braku wpisu / wygaśnięciu
    */
   get: (key) => {
     const row = db.prepare('SELECT * FROM app_cache WHERE cache_key = ?').get(key);
@@ -49,7 +49,7 @@ export const redisLikeCache = {
   },
 
   /**
-   * Invalidates single key or bulk matches using SQL LIKE wildcard (e.g. 'view_dashboard_%')
+   * Unieważnia pojedynczy klucz albo wiele kluczy wzorcem SQL LIKE (e.g. 'view_dashboard_%')
    * @param {string} keyPattern
    */
   invalidate: (keyPattern) => {

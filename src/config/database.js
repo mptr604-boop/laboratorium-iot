@@ -8,7 +8,7 @@ const log = createLogger('db');
 
 const IS_DOCKER = process.env.IS_DOCKER === 'true';
 
-// DB_DIR lets tests and load tests use an isolated database.
+// DB_DIR pozwala testom i testom wydajnościowym używać izolowanej bazy.
 const DB_DIR = process.env.DB_DIR
   ? process.env.DB_DIR
   : IS_DOCKER 

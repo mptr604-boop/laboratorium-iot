@@ -1,5 +1,5 @@
 // src/controllers/view.controller.js
-// Server-Side Rendering (SSR) controller integrated with telemetry alerting and cache engine
+// Kontroler renderowania po stronie serwera (SSR) z alertami telemetrii i cache
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +21,7 @@ function parseCookies(cookieHeader) {
 }
 
 export const viewController = {
-  // GET /dashboard (Cached dashboard view with telemetry monitors)
+  // GET /dashboard (dashboard z cache i monitorami telemetrii)
   renderDashboard: (req, res) => {
     const cookies = parseCookies(req.headers['cookie']);
     const token = cookies['auth_token'];
@@ -41,7 +41,7 @@ export const viewController = {
 
     const cacheKey = `view_dashboard_u${user.id}_s${search}_t${deviceType}_o${sortBy}_p${page}`;
 
-    // Critical cache bypass if active hardware/system alerts exist
+    // Pominięcie cache, gdy są aktywne alerty sprzętowe lub systemowe
     const activeAlerts = anomalyMonitor.getActiveAlerts();
     let cachedHTML = null;
     if (activeAlerts.length === 0) {
@@ -63,7 +63,7 @@ export const viewController = {
     const measurements = dbOperations.getMeasurementsAdvanced({ search, deviceType, sortBy, order, limit, offset });
     const totalCount = dbOperations.countMeasurements(search, deviceType);
 
-    // 1. INFRASTRUCTURE ALERTS RENDER
+    // 1. RENDEROWANIE ALERTÓW INFRASTRUKTURY
     let infrastructureAlertsHTML = '';
     activeAlerts.forEach(alert => {
       let btnAckHTML = '';
@@ -83,7 +83,7 @@ export const viewController = {
       `;
     });
 
-    // 2. FUEL QUALITY THRESHOLD MONITOR
+    // 2. MONITOR PROGÓW JAKOŚCI PALIWA
     const allMeasurements = dbOperations.getMeasurementsAdvanced({ limit: 99999, offset: 0 });
     const faultySamples = allMeasurements.filter(m => m.data.parsed_density < 820 || m.data.parsed_density > 845 || m.data.parsed_density === 'ERR');
     

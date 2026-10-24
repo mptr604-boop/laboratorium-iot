@@ -1,5 +1,5 @@
 // src/utils/uploader.js
-// Native multipart/form-data stream parser for laboratory file attachments
+// Natywny parser strumienia multipart/form-data dla załączników laboratoryjnych
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -78,5 +78,5 @@ function splitBuffer(buf, delimiter) {
   return parts;
 }
 
-// Backward-compatible alias
+// Alias zachowujący kompatybilność wsteczną
 export const parsujFormularzZPlikiem = parseMultipartFormData;

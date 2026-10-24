@@ -6,7 +6,7 @@ const valid = () => ({
   raw_text: 'RESULT: GESTOSC: 832.4 KG/M3',
   parsed_density: 832.4,
   parsed_temperature: 15.1,
-  status_paliwa: 'W NORMIE',
+  fuel_status: 'NORMAL',
   comments: [],
   file_attachment: null,
 });
@@ -16,7 +16,7 @@ test('contract accepts a valid measurement', () => {
 });
 
 test('contract accepts a hardware fault record (ERR values)', () => {
-  const doc = { ...valid(), parsed_density: 'ERR', parsed_temperature: 'ERR', status_paliwa: 'AWARIA APARATU (ERR)' };
+  const doc = { ...valid(), parsed_density: 'ERR', parsed_temperature: 'ERR', fuel_status: 'DEVICE_FAULT' };
   assert.equal(validateMeasurement(doc).ok, true);
 });
 
@@ -30,7 +30,7 @@ test('contract rejects NaN, missing fields, unknown status and unknown fields', 
   const { raw_text, ...withoutRaw } = valid();
   assert.equal(validateMeasurement({ ...valid(), parsed_temperature: NaN }).ok, false);
   assert.match(validateMeasurement(withoutRaw).errors[0], /raw_text: required/);
-  assert.equal(validateMeasurement({ ...valid(), status_paliwa: 'OK' }).ok, false);
+  assert.equal(validateMeasurement({ ...valid(), fuel_status: 'OK' }).ok, false);
   assert.match(validateMeasurement({ ...valid(), extra: 1 }).errors[0], /extra: unknown field/);
 });
 
@@ -41,5 +41,5 @@ test('contract rejects non-objects and oversized raw text', () => {
 
 test('describeContract lists every field', () => {
   const doc = describeContract();
-  for (const field of ['raw_text', 'parsed_density', 'status_paliwa']) assert.ok(doc.includes(field));
+  for (const field of ['raw_text', 'parsed_density', 'fuel_status']) assert.ok(doc.includes(field));
 });

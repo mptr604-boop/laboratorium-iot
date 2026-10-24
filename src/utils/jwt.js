@@ -58,6 +58,6 @@ export function weryfikujJWT(token) {
   }
 }
 
-// English naming aliases
+// Aliasy z angielskimi nazwami
 export const generateJWT = generujJWT;
 export const verifyJWT = weryfikujJWT;

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Panel Laboratoryjny IoT</title>
-    <link rel="manifest" href="/manifest.json"> <!-- DODANO DLA PWA -->
+    <link rel="manifest" href="/manifest.json"> <!-- PWA -->
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
         .kontener { max-width: 1250px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -83,7 +83,7 @@
 
         <div class="form-dodaj-pomiar">
           <h3>Zlecenie i Rejestracja Nowego Badania Paliwa</h3>
-          <!-- DODANO enctype="multipart/form-data" -->
+          <!-- multipart/form-data dla wysyłania plików -->
           <form method="POST" action="/api/measurements/create" enctype="multipart/form-data" class="form-grid">
             <div class="pole">
               <label>Aparat Laboratoryjny</label>
@@ -95,7 +95,7 @@
               <label>Surowy Tekst Wydruku (Format: GESTOSC: XXX.X KG/M3\\nTEMP: XX.X C lub 'ERR')</label>
               <input type="text" name="rawText" required placeholder="np. RESULT: GESTOSC: 834.2 KG/M3\\nRESULT: TEMP: 15.6 C" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; font-size:14px; width:100%; box-sizing:border-box;">
             </div>
-            <!-- DODANO: OPCJONALNY ZAŁĄCZNIK DOKUMENTACJI -->
+            <!-- Opcjonalny załącznik z dokumentacją -->
             <div class="pole">
               <label>Dokumentacja (Zdjęcie / PDF / Raport)</label>
               <input type="file" name="zalacznik" style="font-size: 13px; color: #495057;">

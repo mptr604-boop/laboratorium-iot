@@ -1,5 +1,5 @@
 // src/http_server.js
-// Main HTTP server entrypoint with built-in crash resilience boundary
+// Główny punkt wejścia serwera HTTP z wbudowaną ochroną przed awarią procesu
 
 import http from 'node:http';
 import { handleRouting } from './routes/app.router.js';
@@ -8,7 +8,7 @@ import { createLogger, resolveRequestId, withRequestContext } from './utils/logg
 
 const log = createLogger('http');
 
-// Initialize global crash and unhandled exception safety net
+// Globalna siatka bezpieczeństwa dla nieobsłużonych wyjątków i awarii
 initializeGlobalErrorHandler();
 
 const PORT = process.env.PORT || 3000;
@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
   const startedAt = process.hrtime.bigint();
   res.setHeader('X-Request-Id', requestId);
 
-  // One summary line per request; 'close' also fires when the client aborts mid-response.
+  // Jedna linia podsumowania na żądanie; 'close' odpala się też, gdy klient zerwie połączenie w trakcie odpowiedzi.
   res.on('close', () => {
     const status = res.statusCode;
     const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
