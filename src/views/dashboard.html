@@ -1,0 +1,181 @@
+<!-- src/views/dashboard.html -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Laboratoryjny IoT</title>
+    <link rel="manifest" href="/manifest.json"> <!-- DODANO DLA PWA -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+        .kontener { max-width: 1250px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .naglowek { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .profil-belka { font-size: 14px; background: #e9ecef; padding: 8px 15px; border-radius: 20px; display: flex; gap: 15px; align-items: center; }
+        .btn-link { color: #007bff; text-decoration: none; font-weight: bold; }
+        .filtry-form { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: #f8f9fa; padding: 15px; border-radius: 6px; align-items: center; }
+        .filtry-form input, .filtry-form select, .filtry-form button { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; }
+        .filtry-form button { background: #007bff; color: #fff; cursor: pointer; border: none; font-weight: bold; }
+        .tabela-danych { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .tabela-danych th, .tabela-danych td { text-align: left; padding: 12px; border-bottom: 1px solid #dee2e6; font-size: 14px; }
+        .tabela-danych th { background: #343a40; color: #fff; }
+        .tabela-danych tbody tr:hover { background-color: #f1f3f5; cursor: pointer; }
+        .alert-row { background-color: #f8d7da !important; color: #721c24; }
+        .alert-row:hover { background-color: #f5c6cb !important; }
+        .paginacja-sekcja { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+        .error-banner { display: none; background: #f8d7da; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; border: 1px solid #f5c6cb; font-weight: bold; }
+        .btn-akcja { padding: 5px 10px; border-radius: 4px; border: none; font-size: 12px; cursor: pointer; color: white; font-weight: bold; text-decoration: none; }
+        .btn-usun { background: #dc3545; }
+        .btn-logout { background: #6c757d; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; }
+        .id-link { color: #007bff; text-decoration: none; font-weight: bold; }
+        
+        /* Style dla monitora progów i awarii */
+        .alert-block { padding: 15px 20px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+        .alert-block-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; animation: pulse 2s infinite; }
+        .alert-block-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-block-critical { background: #343a40; color: #ffc107; border: 2px solid #dc3545; font-family: monospace; animation: shake 0.5s infinite; }
+        .btn-ack { background: #ffc107; color: #212529; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        
+        .form-dodaj-pomiar { background: #e8f4fd; padding: 20px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #b8daff; }
+        .form-dodaj-pomiar h3 { margin-top: 0; color: #004085; margin-bottom: 15px; }
+        .form-grid { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
+        .form-grid .pole { display: flex; flex-direction: column; gap: 5px; }
+        .form-grid label { font-size: 12px; font-weight: bold; color: #495057; }
+        .btn-pwa { background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="kontener">
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- BLOKI SYSTEMOWYCH ALERTÓW PROGÓW I ZBUFOROWANYCH AWARII INFRASTRUKTURY -->
+    {{CRITICAL_INFRASTRUCTURE_ALERTS}}
+    {{THRESHOLD_ALERTS_BLOCK}}
+
+    <div class="naglowek">
+        <h2>System Zarządzania Badaniami Laboratoryjnymi (LIMS)</h2>
+        <div class="profil-belka">
+            <button class="btn-pwa" id="pwaBtn" onclick="uruchomSubskrypcjePWA()">🔔 Włącz powiadomienia PWA Push</button>
+            <span>Użytkownik: <strong>{{USERNAME}}</strong> (Rola: <code>{{ROLE}}</code>)</span>
+            {{ADMIN_REGISTER_LINK}}
+            <a href="/login" class="btn-logout" onclick="document.cookie='auth_token=; Max-Age=0; path=/;';">Wyloguj</a>
+        </div>
+    </div>
+
+    <!-- {{ADD_MEASUREMENT_FORM}} -->
+
+        <div class="form-dodaj-pomiar">
+          <h3>Zlecenie i Rejestracja Nowego Badania Paliwa</h3>
+          <!-- DODANO enctype="multipart/form-data" -->
+          <form method="POST" action="/api/measurements/create" enctype="multipart/form-data" class="form-grid">
+            <div class="pole">
+              <label>Aparat Laboratoryjny</label>
+              <select name="deviceId" required style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; font-size:14px;">
+                <option value="1">Aparat Distyl Diesel 9000 (legacy_print)</option>
+              </select>
+            </div>
+            <div class="pole" style="flex-grow: 1;">
+              <label>Surowy Tekst Wydruku (Format: GESTOSC: XXX.X KG/M3\\nTEMP: XX.X C lub 'ERR')</label>
+              <input type="text" name="rawText" required placeholder="np. RESULT: GESTOSC: 834.2 KG/M3\\nRESULT: TEMP: 15.6 C" style="padding: 8px; border-radius: 4px; border: 1px solid #ced4da; font-size:14px; width:100%; box-sizing:border-box;">
+            </div>
+            <!-- DODANO: OPCJONALNY ZAŁĄCZNIK DOKUMENTACJI -->
+            <div class="pole">
+              <label>Dokumentacja (Zdjęcie / PDF / Raport)</label>
+              <input type="file" name="zalacznik" style="font-size: 13px; color: #495057;">
+            </div>
+            <button type="submit" style="background: #28a745; color: white; padding: 9px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size:14px; height:37px;">Zapisz i Przetwórz</button>
+          </form>
+        </div>
+
+    <table class="tabela-danych">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Znaczniki Czasu</th>
+                <th>Aparat Pomiarowy</th>
+                <th>Typ Sprzętu</th>
+                <th>Zgłaszający Badacz</th>
+                <th>Wynik Analizy Gęstości (NoSQL)</th>
+                <th>Operacje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{TABLE_ROWS}}
+        </tbody>
+    </table>
+
+    <div class="paginacja-sekcja">
+        <div>Pokazano rekordy <strong>{{OFFSET_START}} - {{OFFSET_END}}</strong> z <strong>{{TOTAL_RECORDS}}</strong></div>
+        <div style="display: flex; gap: 8px;">
+            {{PAGINATION_BUTTONS}}
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('error')) {
+        const banner = document.getElementById('errorBanner');
+        banner.innerText = decodeURIComponent(urlParams.get('error'));
+        banner.style.display = 'block';
+    }
+
+    // NATYWNY EMBED POWIADOMIEŃ PWA WEB PUSH
+    if (Notification.permission === 'granted') {
+        document.getElementById('pwaBtn').style.display = 'none';
+    }
+
+    async function uruchomSubskrypcjePWA() {
+        if (!('Notification' in window)) {
+            alert('Ta przeglądarka nie obsługuje powiadomień systemowych.');
+            return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            document.getElementById('pwaBtn').style.display = 'none';
+            new Notification('System LIMS', {
+                body: 'Pomyślnie zsynchronizowano urządzenie mobilne z systemem ostrzegania laboratoryjnego!',
+                icon: 'https://flaticon.com'
+            });
+        }
+    }
+
+    // Polling telemetrii: Jeśli na ekranie jest krytyczna awaria, automatycznie wywołujemy dźwięk i Push systemowy
+    if (document.querySelector('.alert-block-critical')) {
+        if (Notification.permission === 'granted') {
+            new Notification('🔥 SYSTEM CRITICAL ALERT', {
+                body: 'Wykryto regularne anomalie programistyczne lub uszkodzenie sprzętu IoT w laboratorium!',
+                requireInteraction: true
+            });
+        }
+    }
+
+    // REJESTRACJA SERVICE WORKERA DLA STUPROCENTOWEGO PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('[PWA] Service Worker zarejestrowany pomyślnie!', reg.scope))
+                .catch(err => console.error('[PWA-ERR] Błąd rejestracji Service Workera:', err));
+        });
+    }
+
+</script>
+</body>
+</html>

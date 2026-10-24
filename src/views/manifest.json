@@ -1,0 +1,17 @@
+{
+  "short_name": "LIMS IoT",
+  "name": "Laboratory Information Management System IoT",
+  "icons": [
+    {
+      "src": "https://flaticon.com",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#f4f6f9",
+  "theme_color": "#007bff",
+  "display": "standalone",
+  "orientation": "portrait"
+}

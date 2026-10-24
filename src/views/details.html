@@ -1,0 +1,104 @@
+<!-- src/views/details.html -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Szczegóły Badania #{{MEASUREMENT_ID}}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+        .kontener { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .naglowek { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .btn-powrot { background: #6c757d; color: white; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-size: 14px; font-weight: bold; }
+        .metadane-siatka { display: grid; grid-template-columns: repeat(2, 12fr); gap: 20px; margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 6px; border: 1px solid #e9ecef; }
+        .metadane-item { font-size: 14px; }
+        .metadane-item strong { color: #495057; }
+        .surowy-wydruk { background: #212529; color: #f8f9fa; font-family: "Courier New", Courier, monospace; padding: 20px; border-radius: 6px; white-space: pre-wrap; font-size: 13px; margin-bottom: 25px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .sekcja-komentarzy { border-top: 2px solid #eee; padding-top: 20px; }
+        .komentarz-lista { background: #fff; max-height: 250px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
+        .komentarz-wpis { background: #f1f3f5; padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 14px; border-left: 4px solid #007bff; }
+        .form-komentarz { display: flex; gap: 10px; margin-top: 15px; }
+        .form-komentarz textarea { flex-grow: 1; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; resize: vertical; height: 60px; }
+        .form-komentarz button { background: #28a745; color: white; border: none; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .form-komentarz button:hover { background: #218838; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .status-norma { background: #d4edda; color: #155724; }
+        .status-alert { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+<div class="kontener">
+    <div class="naglowek">
+        <h2>Karta Laboratoryjna Badania #{{MEASUREMENT_ID}}</h2>
+        <a href="/dashboard" class="btn-powrot">← Powrót do Panelu</a>
+    </div>
+
+    <!-- Dane szczegółowe z bazy relacyjnej SQL -->
+    <div class="metadane-siatka">
+        <div class="metadane-item"><strong>Zgłaszający Badacz:</strong> {{CREATOR_NAME}}</div>
+        <div class="metadane-item"><strong>Data Rejestracji:</strong> {{CREATED_AT}}</div>
+        <div class="metadane-item"><strong>Aparat Laboratoryjny:</strong> {{DEVICE_NAME}}</div>
+        <div class="metadane-item"><strong>Typ Transmisji Sieciowej:</strong> <code>{{DEVICE_TYPE}}</code></div>
+        <div class="metadane-item"><strong>Zintegrowany Status Normy:</strong> {{STATUS_BADGE}}</div>
+        <div class="metadane-item"><strong>Wyliczona Gęstość Paliwa:</strong> <strong>{{PARSED_DENSITY}} kg/m³</strong> (w {{PARSED_TEMP}} °C)</div>
+    </div>
+
+    <h3>Surowy Zrzut Danych Wydruku (Audit Log)</h3>
+    <div class="surowy-wydruk">{{RAW_TEXT}}</div>
+
+     <div>{{FILE_ATTACHMENT_BLOCK}}</div>
+
+    <!-- Sekcja Komentarzy i Notatek Technicznych -->
+    <div class="sekcja-komentarzy">
+        <h3>Notatki i Uwagi Inżynierskie</h3>
+        <div class="komentarz-lista" id="commentsContainer">
+            {{COMMENTS_LIST}}
+        </div>
+
+        <!-- Formularz dodawania komentarza za pomocą Fetch API (Bez przeładowania strony) -->
+        <form id="commentForm" class="form-komentarz" onsubmit="wyslijKomentarz(event)">
+            <input type="hidden" id="measurementId" value="{{MEASUREMENT_ID}}">
+            <textarea id="commentText" required placeholder="Wpisz uwagę techniczną lub komentarz dotyczący analizy próbki..."></textarea>
+            <button type="submit">Dodaj uwagę</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Asynchroniczna wysyłka komentarza REST API
+    async function wyslijKomentarz(event) {
+        event.preventDefault();
+        const id = document.getElementById('measurementId').value;
+        const tekst = document.getElementById('commentText').value;
+
+        try {
+            const response = await fetch('/api/measurements/comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, text: tekst })
+            });
+
+            if (response.ok) {
+                const dane = await response.json();
+                
+                // Dynamicznie wstrzykujemy nowy komentarz do okna bez przeładowania całej strony (AJAX/Fetch)
+                const container = document.getElementById('commentsContainer');
+                if (container.innerHTML.includes('Brak uwag')) container.innerHTML = '';
+                
+                const nowyWpis = document.createElement('div');
+                nowyWpis.className = 'komentarz-wpis';
+                nowyWpis.innerHTML = `<strong>[${dane.autor}]:</strong> ${tekst}`;
+                container.appendChild(nowyWpis);
+                
+                document.getElementById('commentText').value = '';
+                container.scrollTop = container.scrollHeight;
+            } else {
+                const errData = await response.json();
+                alert('Błąd: ' + (errData.blad || 'Brak autoryzacji'));
+            }
+        } catch (err) {
+            alert('Wystąpił błąd sieciowy podczas zapisywania notatki.');
+        }
+    }
+</script>
+</body>
+</html>
