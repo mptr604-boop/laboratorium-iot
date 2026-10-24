@@ -4,29 +4,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { dbOperations } from '../models/db.operations.js';
-import { verifyJWT } from '../utils/jwt.js';
+import { getSessionUserFromRequest } from '../utils/session.js';
 import { redisLikeCache } from '../utils/cache.js';
 import { anomalyMonitor } from '../utils/anomalyMonitor.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('view');
-function parseCookies(cookieHeader) {
-  const cookies = {};
-  if (!cookieHeader) return cookies;
-  cookieHeader.split(';').forEach(c => {
-    const [key, value] = c.trim().split('=');
-    if (key && value) cookies[key] = decodeURIComponent(value);
-  });
-  return cookies;
-}
 
 export const viewController = {
   // GET /dashboard (dashboard z cache i monitorami telemetrii)
   renderDashboard: (req, res) => {
-    const cookies = parseCookies(req.headers['cookie']);
-    const token = cookies['auth_token'];
-    
-    const user = token ? verifyJWT(token) : null;
+    const user = getSessionUserFromRequest(req);
     if (!user) {
       res.writeHead(302, { 'Location': '/login' });
       return res.end();
@@ -214,10 +202,7 @@ export const viewController = {
 
   // GET /measurements/details
   renderDetails: (req, res) => {
-    const cookies = parseCookies(req.headers['cookie']);
-    const token = cookies['auth_token'];
-    
-    const user = token ? verifyJWT(token) : null;
+    const user = getSessionUserFromRequest(req);
     if (!user) {
       res.writeHead(302, { 'Location': '/login' });
       return res.end();

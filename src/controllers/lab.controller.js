@@ -4,7 +4,7 @@
 import crypto from 'node:crypto';
 import { parseMultipartFormData } from '../utils/uploader.js';
 import { dbOperations } from '../models/db.operations.js';
-import { generateJWT } from '../utils/jwt.js';
+import { createSession, destroySession, sessionCookie, clearedSessionCookie, parseCookies, SESSION_COOKIE } from '../utils/session.js';
 import { checkRoleAndPermissions } from '../middlewares/auth.middleware.js';
 import { redisLikeCache } from '../utils/cache.js';
 import { parseLegacyDeviceOutput } from '../utils/parser.js';
@@ -48,10 +48,10 @@ export const labController = {
       }
       const sentPasswordHash = crypto.createHash('sha256').update(body.password || '').digest('hex');
       if (sentPasswordHash === user.password_hash) {
-        const token = generateJWT({ id: user.id, username: user.username, role: user.role });
+        const sessionId = createSession(user.id);
         log.info('login.succeeded', { user_id: user.id, role: user.role });
         res.writeHead(302, {
-          'Set-Cookie': `auth_token=${token}; HttpOnly; Path=/; Max-Age=28800; SameSite=Strict`,
+          'Set-Cookie': sessionCookie(sessionId),
           'Location': '/dashboard'
         });
         return res.end();
@@ -64,6 +64,13 @@ export const labController = {
       res.writeHead(302, { 'Location': '/login?error=' + encodeURIComponent('Błąd serwera') });
       return res.end();
     }
+  },
+
+  // POST /logout: unieważnia sesję na serwerze (ciasteczka HttpOnly nie da się skasować z JS)
+  logout: (req, res) => {
+    destroySession(parseCookies(req.headers['cookie'])[SESSION_COOKIE]);
+    res.writeHead(302, { 'Set-Cookie': clearedSessionCookie(), 'Location': '/login' });
+    return res.end();
   },
 
   // POST /register

@@ -1,11 +1,10 @@
 // src/test/app.test.js
-// Testy automatyczne: kontrola dostępu (RBAC), cache, parser i JWT
+// Testy automatyczne: kontrola dostępu (RBAC), cache, parser
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { parseLegacyDeviceOutput } from '../utils/parser.js';
-import { generateJWT, verifyJWT } from '../utils/jwt.js';
 import { redisLikeCache } from '../utils/cache.js';
 
 // Atrapa operacji na bazie, żeby sprawdzić reguły usuwania bez zmiany stanu SQLite
@@ -85,17 +84,11 @@ test('Cache Engine - Bulk invalidation purges keys matching SQL LIKE wildcard', 
   redisLikeCache.invalidate('view_details_%');
 });
 
-// --- 🧪 TESTY PARSERA REGEX I NATYWNEGO JWT ---
+// --- 🧪 TESTY PARSERA REGEX ---
 
 test('RegEx Parser - Parses density and temperature from raw ASCII stream', () => {
   const parsed = parseLegacyDeviceOutput('RESULT: GESTOSC: 832.4 KG/M3\nRESULT: TEMP: 15.1 C');
   assert.equal(parsed.density, 832.4);
   assert.equal(parsed.temperature, 15.1);
   assert.equal(parsed.fuelStatus, 'NORMAL');
-});
-
-test('Native JWT - Signs payload and verifies token successfully', () => {
-  const token = generateJWT({ id: 1, role: 'admin' });
-  const decoded = verifyJWT(token);
-  assert.equal(decoded.role, 'admin');
 });

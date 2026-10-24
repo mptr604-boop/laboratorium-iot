@@ -5,6 +5,7 @@ import path from 'node:path';
 import { labController } from '../controllers/lab.controller.js';
 import { viewController } from '../controllers/view.controller.js';
 import { createLogger } from '../utils/logger.js';
+import { getSessionUserFromRequest } from '../utils/session.js';
 
 const log = createLogger('router');
 /**
@@ -24,16 +25,7 @@ export async function handleRouting(req, res) {
   
   // Przekierowanie ścieżki głównej
   if (req.method === 'GET' && url.pathname === '/') {
-    const cookies = {};
-    const cookieHeader = req.headers['cookie'];
-    if (cookieHeader) {
-      cookieHeader.split(';').forEach(c => {
-        const [k, v] = c.trim().split('=');
-        if (k && v) cookies[k] = decodeURIComponent(v);
-      });
-    }
-    
-    const targetRoute = cookies['auth_token'] ? '/dashboard' : '/login';
+    const targetRoute = getSessionUserFromRequest(req) ? '/dashboard' : '/login';
     res.writeHead(302, { 'Location': targetRoute });
     return res.end();
   }
@@ -67,6 +59,11 @@ export async function handleRouting(req, res) {
   // POST /login (obsługa sesji)
   if (req.method === 'POST' && url.pathname === '/login') {
     return await labController.login(req, res);
+  }
+
+  // POST /logout
+  if (req.method === 'POST' && url.pathname === '/logout') {
+    return labController.logout(req, res);
   }
 
   // POST /register (rejestracja personelu przez admina)

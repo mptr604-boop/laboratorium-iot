@@ -75,7 +75,7 @@
             <button class="btn-pwa" id="pwaBtn" onclick="uruchomSubskrypcjePWA()">🔔 Włącz powiadomienia PWA Push</button>
             <span>Użytkownik: <strong>{{USERNAME}}</strong> (Rola: <code>{{ROLE}}</code>)</span>
             {{ADMIN_REGISTER_LINK}}
-            <a href="/login" class="btn-logout" onclick="document.cookie='auth_token=; Max-Age=0; path=/;';">Wyloguj</a>
+            <form method="POST" action="/logout" style="display:inline"><button type="submit" class="btn-logout" style="border:0;cursor:pointer">Wyloguj</button></form>
         </div>
     </div>
 

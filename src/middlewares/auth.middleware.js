@@ -1,45 +1,15 @@
 // src/middlewares/auth.middleware.js
-import { verifyJWT } from '../utils/jwt.js';
+import { getSessionUserFromRequest } from '../utils/session.js';
 
 /**
- * Pobiera token autoryzacji z ciasteczek żądania
- * @param {string|undefined} cookieHeader 
- * @returns {string|null}
- */
-function getTokenFromCookies(cookieHeader) {
-  if (!cookieHeader) return null;
-  const cookies = cookieHeader.split(';');
-  for (const c of cookies) {
-    const [key, value] = c.trim().split('=');
-    if (key === 'auth_token' && value) return decodeURIComponent(value);
-  }
-  return null;
-}
-
-/**
- * Role-Based Access Control (RBAC) middleware supporting Bearer headers and HttpOnly cookies
+ * Role-Based Access Control (RBAC) na podstawie sesji z ciasteczka HttpOnly.
  * Obsługuje angielskie i polskie nazwy ról (admin, senior_researcher / badacz_super, researcher / badacz, auditor / przegladajacy)
- * @param {import('node:http').IncomingMessage} req 
- * @param {string[]} allowedRoles 
+ * @param {import('node:http').IncomingMessage} req
+ * @param {string[]} allowedRoles
  * @returns {Object|null}
  */
 export function checkRoleAndPermissions(req, allowedRoles) {
-  let token = null;
-
-  // 1. Nagłówek Authorization (REST API)
-  const authHeader = req.headers['authorization'];
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.split(' ')[1];
-  }
-
-  // 2. Ciasteczko jako zapasowa ścieżka (formularze HTML / SSR)
-  if (!token) {
-    token = getTokenFromCookies(req.headers['cookie']);
-  }
-
-  if (!token) return null;
-
-  const user = verifyJWT(token);
+  const user = getSessionUserFromRequest(req);
   if (!user) return null;
 
   // Mapowanie równoważnych ról dla płynnego przejścia

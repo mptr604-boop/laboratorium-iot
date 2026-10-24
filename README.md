@@ -26,7 +26,7 @@ Backend działa wyłącznie na modułach standardowych Node.js:
 - `node:http` — autorski lekki router HTTP z obsługą SSR i REST API.
 - `node:net` — niskopoziomowy serwer gniazd sieciowych TCP do obsługi transmisji z mikrokontrolerów.
 - `node:sqlite` (`DatabaseSync`) — natywna, wbudowana baza danych o wysokiej wydajności.
-- `node:crypto` — obsługa haszowania SHA-256 oraz natywnej implementacji JWT (HMAC-SHA256).
+- `node:crypto` — haszowanie SHA-256 oraz losowe identyfikatory sesji.
 - `node:test` + `node:assert/strict` — wbudowany runner testów jednostkowych.
 
 ### 2. Przemysłowy silnik bazy danych (SQLite WAL + NoSQL)
@@ -39,7 +39,8 @@ Backend działa wyłącznie na modułach standardowych Node.js:
 - Mechanizm **Cache Bypass** — natychmiastowe ominięcie pamięci podręcznej w przypadku wykrycia awarii krytycznej aparatury.
 
 ### 4. Bezpieczeństwo i RBAC (Role-Based Access Control)
-- Natywny token JWT z podpisem cyfrowym.
+- Sesje po stronie serwera: ciasteczko `session_id` (HttpOnly, SameSite=Strict, `Secure` przy `COOKIE_SECURE=true`), w bazie tylko skrót SHA-256 identyfikatora, ważność 8 h, wylogowanie unieważnia sesję natychmiast (`POST /logout`). Rola jest czytana z bazy przy każdym żądaniu.
+- Wcześniej był ręcznie pisany JWT. Zastąpiła go sesja, bo to jedna aplikacja z SSR, a własnej kryptografii nie warto utrzymywać (patrz `docs/STATUS.md`).
 - Podział ról:
   - `admin` — zarządzanie personelem i sprzętem,
   - `badacz_super` — pełny wgląd i prawo usuwania dowolnych pomiarów,
@@ -110,19 +111,19 @@ laboratorium-iot/
 │   │   ├── lab.controller.js  # Obsługa logowania, formularzy i API
 │   │   └── view.controller.js # Server-Side Rendering z buforowaniem Cache
 │   ├── middlewares/
-│   │   └── auth.middleware.js # Autoryzacja ról (RBAC) i weryfikacja JWT
+│   │   └── auth.middleware.js # Autoryzacja ról (RBAC) na podstawie sesji
 │   ├── models/
 │   │   └── db.operations.js   # Operacje bazodanowe SQL/NoSQL
 │   ├── routes/
 │   │   └── app.router.js      # Centralny router żądań HTTP
 │   ├── test/
-│   │   ├── app.test.js        # Testy automatyczne (prawa dostępu, cache, parser, JWT)
+│   │   ├── app.test.js        # Testy automatyczne (prawa dostępu, cache, parser); `session.test.js` (sesje i przepływ HTTP)
 │   │   └── logger.test.js     # Testy loggera oraz integracyjny test HTTP
 │   ├── utils/
 │   │   ├── anomalyMonitor.js  # Telemetria awarii i monitor progów paliwa
 │   │   ├── cache.js           # Silnik Cache TTL z obsługą wzorców LIKE
 │   │   ├── errorHandler.js    # Globalny system łapania crashów
-│   │   ├── jwt.js             # Generator i walidator natywnego JWT
+│   │   ├── session.js         # Sesje w ciasteczku (skrót w SQLite), wygasanie, wylogowanie
 │   │   ├── logger.js          # Logowanie JSON, poziomy i korelacja requestów
 │   │   ├── parser.js          # Parser surowych wydruków aparatów (RegEx)
 │   │   └── uploader.js        # Parser formularzy multipart z załącznikami
@@ -163,7 +164,7 @@ Domyślne konta testowe:
 ```bash
 npm test
 ```
-Testy obejmują RBAC, cache, parser, JWT, logger, redakcję danych oraz integracyjny test HTTP. Uruchamia je natywny runner Node.js:
+Testy obejmują RBAC, cache, parser, sesje, logger, redakcję danych oraz integracyjny test HTTP. Uruchamia je natywny runner Node.js:
 ```text
 ℹ pass 22 | fail 0
 ```
