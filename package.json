@@ -10,7 +10,8 @@
     "mock:esp32": "node src/mock_esp32.js",
     "seed": "node src/seed.js",
     "test": "node --test 'src/test/*.test.js'",
-    "perf": "node scripts/perf-test.js"
+    "perf": "node scripts/perf-test.js",
+    "contract": "node src/contracts/measurement.contract.js"
   },
   "keywords": [
     "iot",

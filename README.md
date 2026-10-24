@@ -80,6 +80,13 @@ Lokalny baseline z **czterech uruchomień** (mediana; zakres w nawiasach), Node.
 
 To lokalny test pętli zwrotnej, nie gwarancja przepustowości na produkcji: nie obejmuje TLS, sieci zewnętrznej ani wielu procesów/maszyn. HTTP mierzy wyłącznie publiczny widok logowania, a TCP obejmuje walidację tokenu, parsowanie i zapis jednego pomiaru w SQLite. Wyniki służą jako punkt odniesienia do porównań na tym samym sprzęcie.
 
+### 8. Kontrakt danych pomiaru (`src/contracts/measurement.contract.js`)
+Jeden plik opisuje, jak wygląda poprawny pomiar: pola, typy, zakresy (gęstość 300–1200 kg/m³, temperatura −50–100 °C), dozwolone statusy i wartość `ERR` dla awarii aparatu. Pełni dwie role:
+- **Walidator:** `dbOperations.saveMeasurement()` to jedyna brama zapisu (TCP i HTTP), więc nic niezgodnego z kontraktem nie trafi do bazy. Ramka TCP z błędnymi danymi dostaje `STATUS:INVALID_DATA`, a w logu pojawia się `frame.rejected` z listą naruszeń.
+- **Dokumentacja:** `npm run contract` generuje z kontraktu tabelę pól. Osoba z laboratorium może sprawdzić, jakie dane system przyjmuje (np. czy jest wilgotność), bez czytania kodu.
+
+Bez zależności; to ok. 100 linii natywnego JS. Kontrakt obejmuje dokument pomiaru; walidacja surowej ramki ESP32 pozostaje w parserze.
+
 ---
 
 ## 📁 Struktura projektu
@@ -97,6 +104,8 @@ laboratorium-iot/
 ├── src/
 │   ├── config/
 │   │   └── database.js        # Konfiguracja SQLite (DatabaseSync + WAL mode)
+│   ├── contracts/
+│   │   └── measurement.contract.js # Kontrakt pomiaru: walidator + generowana dokumentacja
 │   ├── controllers/
 │   │   ├── lab.controller.js  # Obsługa logowania, formularzy i API
 │   │   └── view.controller.js # Server-Side Rendering z buforowaniem Cache
@@ -156,7 +165,7 @@ npm test
 ```
 Testy obejmują RBAC, cache, parser, JWT, logger, redakcję danych oraz integracyjny test HTTP. Uruchamia je natywny runner Node.js:
 ```text
-ℹ pass 16 | fail 0
+ℹ pass 22 | fail 0
 ```
 
 ### 4. Uruchomienie aplikacji

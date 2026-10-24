@@ -1,5 +1,6 @@
 // src/models/db.operations.js (Część 1)
 import { db } from '../config/database.js';
+import { validateMeasurement, ContractViolationError } from '../contracts/measurement.contract.js';
 
 // --- AKTUALIZACJA STRUKTURY TABEL Z KOLUMNĄ UPDATED_AT ---
 db.exec(`
@@ -58,6 +59,9 @@ export const dbOperations = {
   },
   
   saveMeasurement: (deviceId, userId, nosqlObj) => {
+    // Jedyna brama zapisu (TCP i HTTP): dokument musi spełniać kontrakt.
+    const verdict = validateMeasurement(nosqlObj);
+    if (!verdict.ok) throw new ContractViolationError(verdict.errors);
     // Przy nowym zapisie updated_at dostaje domyślnie identyczny czas jak created_at
     const stmt = db.prepare('INSERT INTO measurements (device_id, user_id, nosql_data) VALUES (?, ?, ?)');
     return stmt.run(deviceId, userId, JSON.stringify(nosqlObj));

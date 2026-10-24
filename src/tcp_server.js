@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { dbOperations } from './models/db.operations.js';
 import { parseLegacyDeviceOutput } from './utils/parser.js';
 import { createLogger, fingerprint } from './utils/logger.js';
+import { ContractViolationError } from './contracts/measurement.contract.js';
 
 const PORT_TCP = process.env.PORT_TCP || 4000;
 const log = createLogger('tcp');
@@ -39,14 +40,20 @@ const server = net.createServer((socket) => {
             comments: []
           };
 
-          dbOperations.saveMeasurement(device.id, 1, nosqlDocument);
-          connLog.info('frame.saved', {
-            device_id: device.id,
-            device: device.name,
-            fuel_status: parsedData.fuelStatus,
-            frame_bytes: dataAccumulator.length,
-          });
-          socket.write('[RESPONSE]|STATUS:OK|[END]');
+          try {
+            dbOperations.saveMeasurement(device.id, 1, nosqlDocument);
+            connLog.info('frame.saved', {
+              device_id: device.id,
+              device: device.name,
+              fuel_status: parsedData.fuelStatus,
+              frame_bytes: dataAccumulator.length,
+            });
+            socket.write('[RESPONSE]|STATUS:OK|[END]');
+          } catch (err) {
+            if (!(err instanceof ContractViolationError)) throw err;
+            connLog.warn('frame.rejected', { reason: 'contract_violation', device_id: device.id, errors: err.errors });
+            socket.write('[RESPONSE]|STATUS:INVALID_DATA|[END]');
+          }
         } else {
           // Only a hash of the token is logged, so repeated bad tokens can be correlated safely.
           connLog.warn('frame.rejected', { reason: 'invalid_device_token', credential_hash: fingerprint(deviceToken) });
