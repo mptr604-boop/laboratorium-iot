@@ -242,8 +242,3 @@ sudo bash environment/deploy.sh journal 20
 - Staging i produkcja mają osobne katalogi danych (`deploy_root/storage/<env>`).
 - Uwaga: przepływ Dockera zweryfikowano testami z atrapą `docker`, nie na prawdziwym hoście.
 
----
-
-## 📜 Licencja
-
-Projekt udostępniony na licencji [MIT](LICENSE). Twórca: **Piotr Miros**.

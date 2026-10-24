@@ -29,7 +29,6 @@
     "zero-dependencies"
   ],
   "author": "Piotr Miros",
-  "license": "MIT",
   "engines": {
     "node": ">=22.0.0"
   }
