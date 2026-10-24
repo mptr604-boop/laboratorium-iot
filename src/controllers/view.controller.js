@@ -7,6 +7,7 @@ import { dbOperations } from '../models/db.operations.js';
 import { getSessionUserFromRequest } from '../utils/session.js';
 import { redisLikeCache } from '../utils/cache.js';
 import { anomalyMonitor } from '../utils/anomalyMonitor.js';
+import { isFaultyMeasurement } from '../utils/parser.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('view');
@@ -73,7 +74,7 @@ export const viewController = {
 
     // 2. MONITOR PROGÓW JAKOŚCI PALIWA
     const allMeasurements = dbOperations.getMeasurementsAdvanced({ limit: 99999, offset: 0 });
-    const faultySamples = allMeasurements.filter(m => m.data.parsed_density < 820 || m.data.parsed_density > 845 || m.data.parsed_density === 'ERR');
+    const faultySamples = allMeasurements.filter(m => isFaultyMeasurement(m.data));
     
     let alertsBlockHTML = '';
     if (faultySamples.length > 0) {
@@ -96,7 +97,7 @@ export const viewController = {
       tableRowsHTML = `<tr><td colspan="7" style="text-align:center; color:#888; padding:30px;">Brak wyników spełniających kryteria.</td></tr>`;
     } else {
       measurements.forEach(m => {
-        const isFaulty = m.data.parsed_density < 820 || m.data.parsed_density > 845 || m.data.parsed_density === 'ERR';
+        const isFaulty = isFaultyMeasurement(m.data);
         const rowClass = isFaulty ? 'class="alert-row"' : '';
         const isOwner = m.user_id === user.id;
         const canDelete = ['admin', 'badacz_super', 'senior_researcher'].includes(user.role) || (['badacz', 'researcher'].includes(user.role) && isOwner);
@@ -113,7 +114,11 @@ export const viewController = {
           actionButtons = '<span style="color:#aaa; font-style:italic;">Brak praw</span>';
         }
 
-        const displayDensity = m.data.parsed_density === 'ERR' ? '<span style="color:#dc3545; font-weight:bold;">AWARIA (ERR)</span>' : `${m.data.parsed_density} kg/m³`;
+        const isClimate = m.data.parsed_humidity !== undefined;
+        const faultLabel = '<span style="color:#dc3545; font-weight:bold;">AWARIA (ERR)</span>';
+        const displayDensity = isClimate
+          ? (m.data.parsed_humidity === 'ERR' ? faultLabel : `${m.data.parsed_humidity} % wilg.`)
+          : (m.data.parsed_density === 'ERR' ? faultLabel : `${m.data.parsed_density} kg/m³`);
         const displayTemp = m.data.parsed_temperature === 'ERR' ? 'ERR' : `${m.data.parsed_temperature}`;
 
         tableRowsHTML += `
@@ -238,7 +243,7 @@ export const viewController = {
       `;
     }
 
-    const isFaulty = nosqlData.parsed_density < 820 || nosqlData.parsed_density > 845 || nosqlData.parsed_density === 'ERR';
+    const isFaulty = isFaultyMeasurement(nosqlData);
     const badgeHTML = isFaulty ? '<span class="status-badge status-alert">PRZEKROCZONE PARAMETRY</span>' : '<span class="status-badge status-norma">W NORMIE</span>';
     const commentsHTML = (nosqlData.comments || [])
       .map(c => `<div class="komentarz-wpis"><strong>[${c.user}]:</strong> ${c.text}</div>`)
@@ -247,7 +252,10 @@ export const viewController = {
     const templatePath = path.join(process.cwd(), 'src', 'views', 'details.html');
     let html = fs.readFileSync(templatePath, 'utf8');
 
-    const displayDensity = nosqlData.parsed_density === 'ERR' ? 'AWARIA APARATU' : nosqlData.parsed_density;
+    const isClimate = nosqlData.parsed_humidity !== undefined;
+    const displayDensity = isClimate
+      ? (nosqlData.parsed_humidity === 'ERR' ? 'AWARIA CZUJNIKA' : `${nosqlData.parsed_humidity} %`)
+      : (nosqlData.parsed_density === 'ERR' ? 'AWARIA APARATU' : `${nosqlData.parsed_density} kg/m³`);
     const displayTemp = nosqlData.parsed_temperature === 'ERR' ? 'AWARIA' : nosqlData.parsed_temperature;
 
     html = html
@@ -257,6 +265,7 @@ export const viewController = {
       .replace('{{DEVICE_NAME}}', m.device_name)
       .replace('{{DEVICE_TYPE}}', m.device_type)
       .replace('{{STATUS_BADGE}}', badgeHTML)
+      .replace('{{MEASURE_LABEL}}', isClimate ? 'Wilgotność względna' : 'Wyliczona Gęstość Paliwa')
       .replace('{{PARSED_DENSITY}}', displayDensity)
       .replace('{{PARSED_TEMP}}', displayTemp)
       .replace('{{RAW_TEXT}}', nosqlData.raw_text || 'Brak surowego zrzutu')

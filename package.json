@@ -8,6 +8,7 @@
     "start": "node src/http_server.js",
     "tcp": "node src/tcp_server.js",
     "mock:esp32": "node src/mock_esp32.js",
+    "esp32": "node src/esp32_dht11.js",
     "seed": "node src/seed.js",
     "test": "node --test 'src/test/*.test.js'",
     "perf": "node scripts/perf-test.js",

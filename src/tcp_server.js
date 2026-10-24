@@ -2,7 +2,7 @@
 import net from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { dbOperations } from './models/db.operations.js';
-import { parseLegacyDeviceOutput } from './utils/parser.js';
+import { parseLegacyDeviceOutput, profileForDevice, toMeasurementFields } from './utils/parser.js';
 import { createLogger, fingerprint } from './utils/logger.js';
 import { ContractViolationError } from './contracts/measurement.contract.js';
 
@@ -30,13 +30,11 @@ const server = net.createServer((socket) => {
         const device = dbOperations.getDeviceByToken(deviceToken);
 
         if (device) {
-          const parsedData = parseLegacyDeviceOutput(rawPrintout);
+          const parsedData = parseLegacyDeviceOutput(rawPrintout, profileForDevice(device));
 
           const nosqlDocument = {
             raw_text: rawPrintout,
-            parsed_density: parsedData.density,
-            parsed_temperature: parsedData.temperature,
-            fuel_status: parsedData.fuelStatus,
+            ...toMeasurementFields(parsedData),
             comments: []
           };
 

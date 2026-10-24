@@ -17,6 +17,9 @@ try {
   // Zasiew aparatu laboratoryjnego o ID = 1
   db.prepare('INSERT OR IGNORE INTO devices (id, token, name, type) VALUES (?, ?, ?, ?)').run(1, 'token_aparat_diesel_9000', 'Aparat Distyl Diesel 9000', 'legacy_print');
 
+  // Zasiew czujnika klimatu: ESP32 + DHT11 (fizyczny albo symulowany, patrz src/esp32_dht11.js)
+  db.prepare('INSERT OR IGNORE INTO devices (id, token, name, type) VALUES (?, ?, ?, ?)').run(2, 'token_esp32_dht11', 'ESP32 + DHT11', 'climate_sensor');
+
   console.log('[SEED] Sukces! Wszystkie brakujące relacje i role zostały pomyślnie zsynchronizowane.');
 } catch (err) {
   console.error(`[SEED-ERROR] Krytyczny błąd zasiewania: ${err.message}`);

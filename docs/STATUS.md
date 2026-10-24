@@ -35,7 +35,7 @@ Dane wpadają przez TCP (ESP32) lub HTTP, są parsowane, walidowane kontraktem i
 
 ## 3. Uruchomienie
 
-`npm start` (HTTP) · `npm run tcp` · `npm run mock:esp32` · `npm run seed` · `npm test` · `npm run perf` · `npm run contract`
+`npm start` (HTTP) · `npm run tcp` · `npm run mock:esp32` · `npm run esp32` (most do prawdziwego ESP32 + DHT11, patrz README) · `npm run seed` · `npm test` · `npm run perf` · `npm run contract`
 Izolowana baza do testów: zmienna `DB_DIR`.
 
 ## 4. Stan funkcji

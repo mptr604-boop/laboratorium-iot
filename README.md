@@ -195,6 +195,24 @@ Format ramki przesyłanej przez mikrokontroler:
 [START]|<TOKEN_APARATU>|<SUROWY_TEKST_WYDRUKU>|[END]
 ```
 
+### Prawdziwy ESP32 + DHT11 (most serial → TCP)
+
+Szkic ESP32 (przykład: `laboratorium-ai/examples/esp32-dht11`) co 2 s drukuje przez USB linię
+`Temperatura: 23.7 C, Wilgotnosc: 42 %`. Most czyta port, dokleja token i wysyła ramkę na TCP:4000
+(urządzenie `ESP32 + DHT11`, typ `climate_sensor`, parser dobierany po typie urządzenia):
+```bash
+npm run seed   # raz: dodaje urządzenie z tokenem token_esp32_dht11
+npm run tcp    # terminal 1
+npm run esp32  # terminal 2: prawdziwy port, a bez ESP32 symulator
+```
+Zmienne: `ESP32_PORT`, `ESP32_BAUD` (115200), `ESP32_TOKEN`, `ESP32_SIMULATE=1`, `PORT_TCP`.
+
+Uwagi:
+- Portu może czytać **jeden** proces. Zamknij `platformio device monitor` / `cat`, inaczej bajty się dzielą i znaki „giną”.
+- Firmware nie wymaga zmian. Zgubioną cyfrę w poprawnym zakresie wykryłaby dopiero suma kontrolna w firmware.
+- Poza zakresem DHT11 (temp. 0–50 °C, wilg. 20–90 %) pomiar dostaje `OUT_OF_SPEC`, a „Blad odczytu” to `DEVICE_FAULT`.
+- Pole statusu nadal nazywa się `fuel_status` (dług nazewniczy z pierwszej wersji).
+
 ---
 
 ## 🐳 Wdrożenie kontenerowe (Docker & Zero-Downtime)

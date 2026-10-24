@@ -41,7 +41,8 @@ console.log(`[DATABASE] Połączono z bazą danych pod ścieżką: ${SCIEZKA_PLI
 /**
  * @typedef {Object} DevicePayloadNoSQL
  * @property {string} raw_text - Surowy zrzut tekstowy przechwycony z portu starej drukarki aparatu
- * @property {number} parsed_density - Wyciągnięta przez parser gęstość paliwa w kg/m3
+ * @property {number} [parsed_density] - Wyciągnięta przez parser gęstość paliwa w kg/m3 (brak dla czujnika klimatu)
+ * @property {number|string} [parsed_humidity] - Wilgotność względna w % (tylko czujnik klimatu)
  * @property {number} parsed_temperature - Wyciągnięta przez parser temperatura pomiaru w stopniach C
  * @property {string} status_paliwa - Ocena zgodności paliwa z normą laboratoryjną
  * @property {EmbeddedComment[]} comments - Tablica komentarzy osadzona bezpośrednio w dokumencie (NoSQL Embedding)
@@ -65,7 +66,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT, -- Unikalny identyfikator systemowy urządzenia
     token TEXT UNIQUE NOT NULL,           -- Bezpieczny token sieciowy, którym ESP32 legitymuje się przez port TCP
     name TEXT NOT NULL,                   -- Czytelna dla ludzi nazwa aparatu (np. "Gęstościomierz D100")
-    type TEXT NOT NULL                    -- Typ transmisji sprzętowej: 'legacy_print' lub 'modern_json'
+    type TEXT NOT NULL                    -- Typ transmisji sprzętowej: 'legacy_print', 'modern_json' albo 'climate_sensor' (ESP32 + DHT11)
   );
 `);
 

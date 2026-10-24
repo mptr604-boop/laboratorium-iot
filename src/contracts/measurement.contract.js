@@ -21,7 +21,7 @@ export const measurementContract = {
   },
   parsed_density: {
     type: 'number',
-    required: true,
+    required: false, // czujnik klimatu (ESP32 + DHT11) nie mierzy gęstości
     min: 300,
     max: 1200,
     unit: 'kg/m3',
@@ -37,11 +37,20 @@ export const measurementContract = {
     allowHardwareError: true,
     description: 'Sample temperature; "ERR" means the instrument reported a fault.',
   },
+  parsed_humidity: {
+    type: 'number',
+    required: false, // tylko czujnik klimatu
+    min: 0,
+    max: 100,
+    unit: '%',
+    allowHardwareError: true,
+    description: 'Relative humidity; "ERR" means the sensor reported a fault.',
+  },
   fuel_status: {
     type: 'string',
     required: true,
     oneOf: FUEL_STATUSES,
-    description: 'Classification of the sample.',
+    description: 'Classification of the sample (for climate sensors: NORMAL, or OUT_OF_SPEC outside the DHT11 range).',
   },
   comments: {
     type: 'array',

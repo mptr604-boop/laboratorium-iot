@@ -57,6 +57,10 @@ export const dbOperations = {
     return stmt.run(token, name, type);
   },
   
+  getDeviceById: (id) => {
+    return db.prepare('SELECT * FROM devices WHERE id = ?').get(id);
+  },
+
   getDeviceByToken: (token) => {
     const stmt = db.prepare('SELECT * FROM devices WHERE token = ?');
     return stmt.get(token);

@@ -8,7 +8,7 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
 import { createSession, destroySession, sessionCookie, clearedSessionCookie, parseCookies, SESSION_COOKIE } from '../utils/session.js';
 import { checkRoleAndPermissions } from '../middlewares/auth.middleware.js';
 import { redisLikeCache } from '../utils/cache.js';
-import { parseLegacyDeviceOutput } from '../utils/parser.js';
+import { parseLegacyDeviceOutput, profileForDevice, toMeasurementFields } from '../utils/parser.js';
 import { anomalyMonitor } from '../utils/anomalyMonitor.js';
 import { createLogger, fingerprint } from '../utils/logger.js';
 
@@ -127,32 +127,26 @@ export const labController = {
       }
 
       const cleanText = rawText.replace(/\\n/g, '\n');
-      let density = 0, temperature = 0, fuelStatus = 'PARSER_ERROR', isHardwareFault = false;
-      
+      let fields;
+      let isHardwareFault = false;
+
       try {
-        const parsed = parseLegacyDeviceOutput(cleanText);
-        if (parsed.density === 'ERR' || parsed.fuelStatus === 'DEVICE_FAULT') {
-          isHardwareFault = true;
-          fuelStatus = 'DEVICE_FAULT';
-        } else {
-          density = parseFloat(parsed.density);
-          temperature = parseFloat(parsed.temperature);
-          fuelStatus = parsed.fuelStatus;
-        }
-      } catch { 
+        const device = dbOperations.getDeviceById(deviceId);
+        const parsed = parseLegacyDeviceOutput(cleanText, profileForDevice(device));
+        fields = toMeasurementFields(parsed);
+        isHardwareFault = parsed.temperature === 'ERR' || parsed.fuelStatus === 'DEVICE_FAULT';
+      } catch {
         isHardwareFault = true;
-        fuelStatus = 'DEVICE_FAULT';
+        fields = { parsed_density: 'ERR', parsed_temperature: 'ERR', fuel_status: 'DEVICE_FAULT' };
       }
 
       if (isHardwareFault) {
         anomalyMonitor.registerIncident('ERR_CODE_HARDWARE_FAILURE', `Aparat ID [${deviceId}]`);
       }
 
-      const nosqlDocument = { 
-        raw_text: cleanText, 
-        parsed_density: isHardwareFault ? 'ERR' : density, 
-        parsed_temperature: isHardwareFault ? 'ERR' : temperature, 
-        fuel_status: fuelStatus,
+      const nosqlDocument = {
+        raw_text: cleanText,
+        ...fields,
         comments: [],
         file_attachment: attachmentData
       };
