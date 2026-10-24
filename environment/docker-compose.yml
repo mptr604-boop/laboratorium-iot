@@ -9,8 +9,8 @@ services:
     ports:
       - "8080:3000"
     volumes:
-      # Mapujemy folder storage z deploy_root na hoście do kontenera (Trwałość danych)
-      - ../deploy_root/storage:/app/storage
+      # Osobny katalog danych stagingu (STORAGE_DIR ustawia deploy.sh); nie dzieli bazy z produkcją
+      - ${STORAGE_DIR:-../deploy_root/storage/staging}:/app/storage
     environment:
       - NODE_ENV=staging
       - APP_VERSION=${APP_VERSION_TAG:-staging-latest}
@@ -26,8 +26,8 @@ services:
     ports:
       - "80:3000"
     volumes:
-      # Pancerne mapowanie bazy danych dla środowiska produkcyjnego
-      - ../deploy_root/storage:/app/storage
+      # Trwały katalog bazy produkcyjnej (STORAGE_DIR ustawia deploy.sh)
+      - ${STORAGE_DIR:-../deploy_root/storage/production}:/app/storage
     environment:
       - NODE_ENV=production
       - APP_VERSION=${APP_VERSION_TAG:-v1.0.0}
