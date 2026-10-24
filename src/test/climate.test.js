@@ -71,6 +71,9 @@ test('most: ramka z tokenem, szum i komentarze są pomijane, "|" nie psuje proto
   assert.equal(lineToFrame('DHT11 start', 'tok'), null);
   assert.equal(lineToFrame('   ', 'tok'), null);
   assert.equal(lineToFrame('rst:0x1 (POWERON_RESET),boot:0x13', 'tok'), null);
+  for (const noise of ["Guru Meditation Error: Core  1 panic'ed (Interrupt wdt timeout on CPU1).", 'Backtrace: 0x400d5236:0x3ffb1e80', 'A2      : 0x00000000  A3      : 0x00060023', 'entry 0x4008059c']) {
+    assert.equal(lineToFrame(noise, 'tok'), null, noise);
+  }
   assert.equal(lineToFrame('Blad odczytu z DHT11 - sprawdz okablowanie', 'tok') !== null, true);
   assert.ok(!lineToFrame('Temperatura: 1 C | Wilgotnosc: 40 %', 'tok').slice(7).includes('|Wilg'));
 });
@@ -100,10 +103,10 @@ test('most: runBridge wysyła ramki, liczy pominięte, a błąd sieci nie przery
     return 'OK';
   };
   const stream = Readable.from([`${LINE}\n# komentarz\n${LINE}\n${LINE}\n`]);
-  const stats = runBridge(stream, { token: 't', send });
+  const stats = runBridge(stream, { token: 't', send, minIntervalMs: 0 });
   await new Promise((r) => stream.on('end', r));
   await new Promise((r) => setTimeout(r, 20));
-  assert.deepEqual(stats, { forwarded: 2, ignored: 1, failed: 1 });
+  assert.deepEqual(stats, { forwarded: 2, ignored: 1, failed: 1, throttled: 0 });
   assert.equal(sent.length, 2);
 });
 
@@ -137,7 +140,7 @@ test('e2e: linie z czujnika trafiają przez TCP do bazy jako pomiary klimatu', a
 
     const lines = [LINE, 'Blad odczytu z DHT11 - sprawdz okablowanie', 'Temperatura: 70.0 C, Wilgotnosc: 42 %'];
     const stream = Readable.from([lines.join('\n') + '\n']);
-    const stats = runBridge(stream, { token: 'token_esp32_dht11', sendOptions: { port: tcpPort } });
+    const stats = runBridge(stream, { token: 'token_esp32_dht11', sendOptions: { port: tcpPort }, minIntervalMs: 0 });
     await new Promise((r) => stream.on('end', r));
     for (let i = 0; i < 100 && stats.forwarded < 3; i++) await new Promise((r) => setTimeout(r, 50));
     assert.equal(stats.forwarded, 3, JSON.stringify(stats));
@@ -153,4 +156,13 @@ test('e2e: linie z czujnika trafiają przez TCP do bazy jako pomiary klimatu', a
   } finally {
     server.kill();
   }
+});
+
+test('most: zalew linii (pętla restartów ESP32) jest ograniczany do jednej ramki na okno czasu', async () => {
+  const sent = [];
+  const stream = Readable.from([Array(1000).fill('Blad odczytu z DHT11 - sprawdz okablowanie').join('\n') + '\n']);
+  const stats = runBridge(stream, { token: 't', send: async (f) => sent.push(f), minIntervalMs: 500 });
+  await new Promise((r) => stream.on('end', r));
+  assert.equal(sent.length, 1);
+  assert.equal(stats.throttled, 999);
 });

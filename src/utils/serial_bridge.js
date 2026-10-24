@@ -22,8 +22,10 @@ export function configurePort(port, baud = 115200) {
 }
 
 // Linie z firmware bez danych: puste, komentarze (#...) i komunikat startowy.
-// Szum z bootloadera ESP32 po resecie odfiltrowuje wymóg, by linia wyglądała jak odczyt albo błąd czujnika.
-const LOOKS_LIKE_READING = /temp|wilg|blad|err|%|\d\s*C\b/i;
+// Szum z bootloadera i zrzuty paniki ESP32 (Guru Meditation, Backtrace) odfiltrowuje wymóg, by linia
+// zaczynała się dokładnie jak odczyt albo błąd czujnika ze szkicu. Uszkodzone linie z "Temperatura:" przechodzą dalej,
+// bo ocenia je parser (CORRUPTED_TRANSMISSION).
+const LOOKS_LIKE_READING = /^(Temperatura:|Blad odczytu)/i;
 
 /** Zwraca ramkę `[START]|token|linia|[END]` albo null, gdy linia nie jest odczytem. */
 export function lineToFrame(line, token) {
@@ -63,14 +65,23 @@ export function sendFrame(frame, { host = '127.0.0.1', port = 4000, timeoutMs = 
 }
 
 /** Spina całość: linie z `readable` -> ramki -> serwer. Błąd sieci nie przerywa pracy mostu. */
-export function runBridge(readable, { token, send = sendFrame, sendOptions } = {}) {
-  const stats = { forwarded: 0, ignored: 0, failed: 0 };
+// Zabezpieczenie przed zalaniem bazy: ESP32 z odpiętym czujnikiem potrafi wpaść w pętlę restartów
+// i wypluwać tysiące linii na sekundę, a firmware normalnie nadaje co 2 s. Nadmiar jest liczony, nie wysyłany.
+export function runBridge(readable, { token, send = sendFrame, sendOptions, minIntervalMs = 500 } = {}) {
+  const stats = { forwarded: 0, ignored: 0, failed: 0, throttled: 0 };
+  let lastSentAt = 0;
   splitLines(readable, async (line) => {
     const frame = lineToFrame(line, token);
     if (!frame) {
       stats.ignored++;
       return;
     }
+    const now = Date.now();
+    if (now - lastSentAt < minIntervalMs) {
+      stats.throttled++;
+      return;
+    }
+    lastSentAt = now;
     try {
       const response = await send(frame, sendOptions);
       stats.forwarded++;

@@ -209,6 +209,7 @@ Zmienne: `ESP32_PORT`, `ESP32_BAUD` (115200), `ESP32_TOKEN`, `ESP32_SIMULATE=1`,
 
 Uwagi:
 - Portu może czytać **jeden** proces. Zamknij `platformio device monitor` / `cat`, inaczej bajty się dzielą i znaki „giną”.
+- Odpięty czujnik: ESP32 potrafi wpaść w pętlę restartów i zalać port (zaobserwowane na sprzęcie). Most przepuszcza tylko linie zaczynające się od `Temperatura:` lub `Blad odczytu` i ogranicza tempo do 1 ramki na 500 ms. Przyczyną jest szkic (DHT bez czujnika zawiesza odczyt), tu tylko bronimy bazę.
 - Firmware nie wymaga zmian. Zgubioną cyfrę w poprawnym zakresie wykryłaby dopiero suma kontrolna w firmware.
 - Poza zakresem DHT11 (temp. 0–50 °C, wilg. 20–90 %) pomiar dostaje `OUT_OF_SPEC`, a „Blad odczytu” to `DEVICE_FAULT`.
 - Pole statusu nadal nazywa się `fuel_status` (dług nazewniczy z pierwszej wersji).
