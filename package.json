@@ -1,0 +1,31 @@
+{
+  "name": "laboratorium-iot",
+  "version": "1.0.0",
+  "description": "LIMS / IoT fuel testing data acquisition & telemetry system in native Node.js and SQLite WAL",
+  "main": "src/http_server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/http_server.js",
+    "tcp": "node src/tcp_server.js",
+    "mock:esp32": "node src/mock_esp32.js",
+    "seed": "node src/seed.js",
+    "test": "node --test src/test/app.test.js"
+  },
+  "keywords": [
+    "iot",
+    "lims",
+    "nodejs",
+    "sqlite",
+    "wal",
+    "tcp-server",
+    "esp32",
+    "clean-architecture",
+    "telemetry",
+    "zero-dependencies"
+  ],
+  "author": "Piotr Miros",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

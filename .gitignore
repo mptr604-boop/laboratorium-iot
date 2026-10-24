@@ -1,0 +1,35 @@
+# Zależności
+node_modules/
+package-lock.json
+
+# Zmienne środowiskowe i tajemnice
+.env
+.env.*
+!.env.example
+
+# Baza danych SQLite i pliki tymczasowe WAL
+src/storage/*.sqlite
+src/storage/*.sqlite-shm
+src/storage/*.sqlite-wal
+src/storage/uploads/*
+!src/storage/uploads/.gitkeep
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# Środowisko wdrożeń lokalnych i chroot
+deploy_root/
+mini_debian_dev/
+backup/
+
+# Logi systemowe
+logs/
+*.log
+npm-debug.log*
+
+# Edytory i system operacyjny
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
