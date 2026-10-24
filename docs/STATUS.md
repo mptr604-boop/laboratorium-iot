@@ -2,7 +2,7 @@
 
 Aktualizuj ten plik w tym samym commicie, w którym zmienia się kod lub decyzja. Cel: poniżej 150 linii.
 
-**Ostatnia aktualizacja:** 2026-10-24 · **Wersja:** 1.0.0 · **Testy:** `npm test` (38 przechodzą)
+**Ostatnia aktualizacja:** 2026-10-24 · **Wersja:** 1.0.0 · **Testy:** `npm test` (39 przechodzą)
 
 ## 1. Czym jest projekt
 
@@ -20,6 +20,7 @@ Dane wpadają przez TCP (ESP32) lub HTTP, są parsowane, walidowane kontraktem i
 | `src/http_server.js`, `src/routes/app.router.js` | Serwer HTTP i router (bez Expressa) |
 | `src/controllers/` | `lab.controller.js` (akcje POST), `view.controller.js` (widoki SSR) |
 | `src/middlewares/auth.middleware.js` | RBAC na podstawie sesji |
+| `src/utils/csrf.js` | Blokada żądań cross-site (Sec-Fetch-Site, Origin) dla każdego POST, wpięta w router |
 | `src/utils/session.js` | Sesje: losowy id w ciasteczku, skrót SHA-256 w tabeli `sessions`, TTL 8 h |
 | `src/utils/logger.js` | Logi JSON, ID korelacji żądania, maskowanie sekretów |
 | `src/utils/anomalyMonitor.js`, `detective.js`, `errorHandler.js` | Alerty okna czasowego, obserwacja stanu, ochrona procesu |
@@ -50,7 +51,7 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 ## 5. Znane problemy i słabości (stan faktyczny)
 
 - Hasła: SHA-256 **bez soli** (w produkcji bcrypt/argon2).
-- Sesje: własna implementacja (nie biblioteka). Brak ochrony CSRF poza `SameSite=Strict`, brak limitu prób logowania.
+- Sesje: własna implementacja (nie biblioteka). Brak limitu prób logowania.
 - Nie ma już REST-owego uwierzytelniania nagłówkiem `Authorization: Bearer`; API działa na sesji z ciasteczka (klient nieprzeglądarkowy musi najpierw się zalogować i przenosić ciasteczko).
 - TCP zapisuje pomiary z zakodowanym `user_id = 1`.
 - Brak limitu rozmiaru bufora TCP i brak rate limitingu.
@@ -66,6 +67,7 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 - `node:http` zamiast Expressa: mniej zależności i mniejsze ryzyko supply chain, kosztem większej ilości pracy.
 - Kontrakt w `saveMeasurement`, więc żadna ścieżka wejścia go nie omija.
 - Sesja w ciasteczku zamiast JWT: jedna aplikacja z SSR, możliwość unieważnienia po stronie serwera, brak własnej kryptografii do utrzymania. JWT był wcześniejszym eksperymentem (historia git).
+- CSRF: `SameSite=Strict` plus sprawdzenie `Sec-Fetch-Site`/`Origin` w routerze, bez tokenów w HTML. Powód: widoki są cache'owane per użytkownik (10 s), więc token w formularzu rozjeżdżałby się z sesją. Żądania bez tych nagłówków (curl, skrypty) przechodzą, bo CSRF wymaga przeglądarki ofiary.
 - Statusy: `NORMAL`, `OUT_OF_SPEC`, `CORRUPTED_TRANSMISSION`, `DEVICE_FAULT`, `PARSER_ERROR`; pole `fuel_status`.
 - Identyfikatory po angielsku, komentarze po polsku.
 - Historia commitów jest uporządkowana warstwowo (porządki przy publikacji, nie chronologia).
@@ -78,4 +80,5 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 | 2026-10 | Refaktor nazw: angielskie identyfikatory i statusy, komentarze po polsku |
 | 2026-10-24 | `docs/STATUS.md` i `AGENTS.md` |
 | 2026-10-24 | JWT zastąpione sesją w ciasteczku (`session.js`, `POST /logout`), 8 nowych testów |
+| 2026-10-24 | Ochrona CSRF (`csrf.js`), test blokady fałszywego POST |
 | 2026-10-25 | Naprawa `deploy.sh` (stary nic nie robił), osobne dane per środowisko, backup/restore bazy, dziennik wdrożeń |

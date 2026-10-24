@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { isCrossSiteRequest } from '../utils/csrf.js';
 
 const unitDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lab-session-unit-'));
 process.env.DB_DIR = unitDir;
@@ -69,6 +70,18 @@ test('Session - malformed cookie header does not throw', () => {
   assert.deepEqual(session.parseCookies('%E0%A4%A; session_id=ok'), { session_id: 'ok' });
 });
 
+test('CSRF - cross-site and foreign-origin writes are blocked, same-origin and non-browser are allowed', () => {
+  const post = (headers) => isCrossSiteRequest({ method: 'POST', headers: { host: 'lab.local', ...headers } });
+  assert.equal(post({ 'sec-fetch-site': 'cross-site' }), true);
+  assert.equal(post({ 'sec-fetch-site': 'same-site' }), true);
+  assert.equal(post({ 'sec-fetch-site': 'same-origin' }), false);
+  assert.equal(post({ origin: 'https://evil.example' }), true);
+  assert.equal(post({ origin: 'null' }), true);
+  assert.equal(post({ origin: 'http://lab.local' }), false);
+  assert.equal(post({}), false);
+  assert.equal(isCrossSiteRequest({ method: 'GET', headers: { 'sec-fetch-site': 'cross-site' } }), false);
+});
+
 test('HTTP flow - login sets a session cookie, dashboard works, logout kills the session (real process)', async () => {
   const dbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lab-session-http-'));
   const env = { ...process.env, DB_DIR: dbDir, SEED_DEFAULT_PASSWORD: 'test-haslo-123', LOG_LEVEL: 'error' };
@@ -107,6 +120,11 @@ test('HTTP flow - login sets a session cookie, dashboard works, logout kills the
 
     const forged = await fetch(`${base}/dashboard`, { ...noFollow, headers: { cookie: 'session_id=podrobione' } });
     assert.equal(forged.status, 302);
+
+    const forgedPost = await fetch(`${base}/logout`, { ...noFollow, method: 'POST', headers: { cookie, origin: 'https://evil.example' } });
+    assert.equal(forgedPost.status, 403);
+    const stillIn = await fetch(`${base}/dashboard`, { ...noFollow, headers: { cookie } });
+    assert.equal(stillIn.status, 200, 'blocked CSRF must not log the user out');
 
     const logout = await fetch(`${base}/logout`, { ...noFollow, method: 'POST', headers: { cookie } });
     assert.equal(logout.status, 302);

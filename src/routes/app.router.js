@@ -6,6 +6,7 @@ import { labController } from '../controllers/lab.controller.js';
 import { viewController } from '../controllers/view.controller.js';
 import { createLogger } from '../utils/logger.js';
 import { getSessionUserFromRequest } from '../utils/session.js';
+import { isCrossSiteRequest } from '../utils/csrf.js';
 
 const log = createLogger('router');
 /**
@@ -20,6 +21,12 @@ export async function handleRouting(req, res) {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(payload));
   };
+
+  if (isCrossSiteRequest(req)) {
+    log.warn('csrf.blocked', { method: req.method, path: url.pathname, site: req.headers['sec-fetch-site'], origin: req.headers['origin'] });
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('Forbidden: cross-site request');
+  }
 
   // --- 1. TRASY WIDOKÓW SSR (GET) ---
   
