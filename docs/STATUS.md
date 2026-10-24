@@ -2,7 +2,7 @@
 
 Aktualizuj ten plik w tym samym commicie, w którym zmienia się kod lub decyzja. Cel: poniżej 150 linii.
 
-**Ostatnia aktualizacja:** 2026-10-24 · **Wersja:** 1.0.0 · **Testy:** `npm test` (22 przechodzą)
+**Ostatnia aktualizacja:** 2026-10-24 · **Wersja:** 1.0.0 · **Testy:** `npm test` (30 przechodzą)
 
 ## 1. Czym jest projekt
 
@@ -27,7 +27,8 @@ Dane wpadają przez TCP (ESP32) lub HTTP, są parsowane, walidowane kontraktem i
 | `scripts/perf-test.js` | Test wydajności (`npm run perf`) |
 | `src/test/` | `app`, `contract`, `logger` |
 | `src/db.js` | **Martwy plik**, nic go nie używa |
-| `environment/` | Dockerfile, compose, `deploy.sh` (wydania i rollback) |
+| `environment/` | Dockerfile, compose, `deploy.sh` (deploy, rollback, restore, journal) |
+| `scripts/` | `backup.js`, `restore.js`, `lib/journal.js` |
 
 ## 3. Uruchomienie
 
@@ -42,6 +43,7 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 | Logi strukturalne (JSON, ID korelacji, maskowanie) | ✅ |
 | Test wydajności | ✅ (lokalny loopback) |
 | RBAC, JWT, SSR, PWA, Docker, rollback | ✅ |
+| Backup/restore bazy, dziennik wdrożeń (`journal.jsonl`) | ✅ testy z atrapą dockera |
 | Asystent AI | ⏳ osobny projekt: `laboratorium-ai` |
 
 ## 5. Znane problemy i słabości (stan faktyczny)
@@ -52,6 +54,7 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 - Brak limitu rozmiaru bufora TCP i brak rate limitingu.
 - Domyślne hasła użytkowników seedowych.
 - Zakresy kontraktu (gęstość 300–1200 kg/m³, temperatura −50–100 °C) to **założenia**, nie dane z aparatu.
+- Przepływ `deploy.sh` nie był sprawdzony na prawdziwym Dockerze; backup wymaga Node 24 na hoście.
 - Wyniki `perf` pochodzą z lokalnego loopbacku, nie z produkcji.
 - Teksty UI, komunikaty flash i dane seedowe są po polsku (celowo).
 - Zmiana nazw pól/statusów nie migruje starych baz (projekt demonstracyjny).
@@ -71,3 +74,4 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 | 2026-10 | Logi strukturalne, test wydajności, kontrakt danych |
 | 2026-10 | Refaktor nazw: angielskie identyfikatory i statusy, komentarze po polsku |
 | 2026-10-24 | `docs/STATUS.md` i `AGENTS.md` |
+| 2026-10-25 | Naprawa `deploy.sh` (stary nic nie robił), osobne dane per środowisko, backup/restore bazy, dziennik wdrożeń |

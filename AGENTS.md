@@ -7,3 +7,4 @@
 5. Walidacja kontraktu zostaje w `saveMeasurement`. Nie omijaj jej nową ścieżką zapisu.
 6. Przed commitem: `npm test`. Po zmianach w TCP lub zapisie dodatkowo `npm run perf`.
 7. Nie zapisuj sekretów w kodzie. Logger maskuje klucze pasujące do `token|password|secret|authorization|cookie|jwt`.
+8. Wdrożenia: skrypt zapisuje dziennik, a agent tylko doradza (naprawa w przód czy rollback). Agent **nie cofa bazy** ani nie uruchamia deployu bez człowieka. Przywrócenie bazy: `deploy.sh restore`, z backupu.

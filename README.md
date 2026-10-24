@@ -206,9 +206,20 @@ sudo bash environment/deploy.sh staging
 # Wdrożenie produkcyjne wydania v1 (port 80 z atomowym przepięciem symlinka)
 sudo bash environment/deploy.sh production v1
 
-# Natychmiastowy rollback w przypadku błędu
-sudo bash environment/deploy.sh rollback v1
+# Rollback kodu z powodem (przed nim powstaje backup bazy)
+sudo bash environment/deploy.sh rollback v1 "opis błędu"
+
+# Przywrócenie bazy z backupu (ręczna, świadoma decyzja)
+sudo bash environment/deploy.sh restore production backup/production/<plik>.sqlite
+
+# Dziennik wdrożeń (kto, co, kiedy, wynik)
+sudo bash environment/deploy.sh journal 20
 ```
+
+- Backup bazy (`node:sqlite` `backup()`, `integrity_check`, suma SHA-256, retencja 14 dni) powstaje automatycznie przed wdrożeniem produkcyjnym i rollbackiem. Ręcznie: `npm run backup`. Do działania na hoście potrzebny jest Node 24.
+- Rollback **nie cofa bazy**: po kilku dniach cofnięcie bazy kasuje nowe dane, więc preferuj poprawkę „w przód”.
+- Staging i produkcja mają osobne katalogi danych (`deploy_root/storage/<env>`).
+- Uwaga: przepływ Dockera zweryfikowano testami z atrapą `docker`, nie na prawdziwym hoście.
 
 ---
 

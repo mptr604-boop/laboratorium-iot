@@ -11,7 +11,9 @@
     "seed": "node src/seed.js",
     "test": "node --test 'src/test/*.test.js'",
     "perf": "node scripts/perf-test.js",
-    "contract": "node src/contracts/measurement.contract.js"
+    "contract": "node src/contracts/measurement.contract.js",
+    "backup": "node scripts/backup.js src/storage backup/local local",
+    "journal": "node scripts/lib/journal.js"
   },
   "keywords": [
     "iot",
