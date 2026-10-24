@@ -1,0 +1,39 @@
+services:
+  # --- ŚRODOWISKO STAGING (PORT 8080) ---
+  lab-app-staging:
+    build:
+      context: ..
+      dockerfile: environment/Dockerfile
+    container_name: lab_backend_staging
+    restart: unless-stopped
+    ports:
+      - "8080:3000"
+    volumes:
+      # Mapujemy folder storage z deploy_root na hoście do kontenera (Trwałość danych)
+      - ../deploy_root/storage:/app/storage
+    environment:
+      - NODE_ENV=staging
+      - APP_VERSION=${APP_VERSION_TAG:-staging-latest}
+      - IS_DOCKER=true
+
+  # --- ŚRODOWISKO PRODUKCYJNE (PORT 80) ---
+  lab-app-production:
+    build:
+      context: ..
+      dockerfile: environment/Dockerfile
+    container_name: lab_backend_production
+    restart: unless-stopped
+    ports:
+      - "80:3000"
+    volumes:
+      # Pancerne mapowanie bazy danych dla środowiska produkcyjnego
+      - ../deploy_root/storage:/app/storage
+    environment:
+      - NODE_ENV=production
+      - APP_VERSION=${APP_VERSION_TAG:-v1.0.0}
+      - IS_DOCKER=true
+    deploy:
+      update_config:
+        order: start-first
+        delay: 5s
+        failure_action: rollback
