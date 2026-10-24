@@ -43,6 +43,10 @@ export const dbOperations = {
     return stmt.run(username, hash, role);
   },
   
+  updateUserPasswordHash: (id, hash) => {
+    return db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+  },
+
   getUserByUsername: (username) => {
     const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
     return stmt.get(username);

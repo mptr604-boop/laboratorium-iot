@@ -3,9 +3,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { DatabaseSync } from 'node:sqlite';
 import { isCrossSiteRequest } from '../utils/csrf.js';
 
 const unitDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lab-session-unit-'));
@@ -109,11 +111,22 @@ test('HTTP flow - login sets a session cookie, dashboard works, logout kills the
     const bad = await fetch(`${base}/login`, { ...noFollow, method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'username=szef_admin&password=zle' });
     assert.ok(!bad.headers.get('set-cookie'));
 
+    const stored = () => new DatabaseSync(path.join(dbDir, 'laboratorium.sqlite'), { readOnly: true })
+      .prepare("SELECT password_hash FROM users WHERE username = 'szef_admin'").get().password_hash;
+    assert.match(stored(), /^scrypt\$/, 'seed must store a salted scrypt hash');
+
+    // Migracja: konto ze starym hashem SHA-256 loguje się i dostaje hash scrypt.
+    const legacyHash = crypto.createHash('sha256').update('test-haslo-123').digest('hex');
+    const writer = new DatabaseSync(path.join(dbDir, 'laboratorium.sqlite'));
+    writer.prepare("UPDATE users SET password_hash = ? WHERE username = 'szef_admin'").run(legacyHash);
+    writer.close();
+
     const login = await fetch(`${base}/login`, { ...noFollow, method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'username=szef_admin&password=test-haslo-123' });
     assert.equal(login.headers.get('location'), '/dashboard');
     const setCookie = login.headers.get('set-cookie');
     assert.match(setCookie, /^session_id=[\w-]{40,}; Max-Age=28800; HttpOnly/);
     const cookie = setCookie.split(';')[0];
+    assert.match(stored(), /^scrypt\$/, 'legacy hash must be upgraded after a successful login');
 
     const dashboard = await fetch(`${base}/dashboard`, { ...noFollow, headers: { cookie } });
     assert.equal(dashboard.status, 200);

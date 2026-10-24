@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import { parseMultipartFormData } from '../utils/uploader.js';
 import { dbOperations } from '../models/db.operations.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
 import { createSession, destroySession, sessionCookie, clearedSessionCookie, parseCookies, SESSION_COOKIE } from '../utils/session.js';
 import { checkRoleAndPermissions } from '../middlewares/auth.middleware.js';
 import { redisLikeCache } from '../utils/cache.js';
@@ -46,8 +47,10 @@ export const labController = {
         res.writeHead(302, { 'Location': '/login?error=' + encodeURIComponent('Nieprawidłowy login lub hasło') });
         return res.end();
       }
-      const sentPasswordHash = crypto.createHash('sha256').update(body.password || '').digest('hex');
-      if (sentPasswordHash === user.password_hash) {
+      const check = verifyPassword(body.password || '', user.password_hash);
+      if (check.ok) {
+        // Stary hash (SHA-256 bez soli) podmieniamy na scrypt przy pierwszym udanym logowaniu.
+        if (check.needsRehash) dbOperations.updateUserPasswordHash(user.id, hashPassword(body.password));
         const sessionId = createSession(user.id);
         log.info('login.succeeded', { user_id: user.id, role: user.role });
         res.writeHead(302, {
@@ -86,7 +89,7 @@ export const labController = {
         res.writeHead(302, { 'Location': '/register?error=' + encodeURIComponent('Wszystkie pola wymagane') });
         return res.end();
       }
-      const newPasswordHash = crypto.createHash('sha256').update(body.password).digest('hex');
+      const newPasswordHash = hashPassword(body.password);
       dbOperations.createUser(body.username, newPasswordHash, body.role);
       res.writeHead(302, { 'Location': '/register?success=' + encodeURIComponent('Zarejestrowano ' + body.username) });
       return res.end();

@@ -26,7 +26,7 @@ Backend działa wyłącznie na modułach standardowych Node.js:
 - `node:http` — autorski lekki router HTTP z obsługą SSR i REST API.
 - `node:net` — niskopoziomowy serwer gniazd sieciowych TCP do obsługi transmisji z mikrokontrolerów.
 - `node:sqlite` (`DatabaseSync`) — natywna, wbudowana baza danych o wysokiej wydajności.
-- `node:crypto` — haszowanie SHA-256 oraz losowe identyfikatory sesji.
+- `node:crypto` — haszowanie haseł (scrypt, sól per użytkownik, opcjonalny klucz serwera `PASSWORD_PEPPER`), SHA-256 skrótów sesji oraz losowe identyfikatory.
 - `node:test` + `node:assert/strict` — wbudowany runner testów jednostkowych.
 
 ### 2. Przemysłowy silnik bazy danych (SQLite WAL + NoSQL)
@@ -40,6 +40,7 @@ Backend działa wyłącznie na modułach standardowych Node.js:
 
 ### 4. Bezpieczeństwo i RBAC (Role-Based Access Control)
 - Sesje po stronie serwera: ciasteczko `session_id` (HttpOnly, SameSite=Strict, `Secure` przy `COOKIE_SECURE=true`), w bazie tylko skrót SHA-256 identyfikatora, ważność 8 h, wylogowanie unieważnia sesję natychmiast (`POST /logout`). Każdy POST z innej domeny jest blokowany (403) przez kontrolę `Sec-Fetch-Site`/`Origin`. Rola jest czytana z bazy przy każdym żądaniu.
+- Hasła: scrypt + losowa sól per użytkownik; z `PASSWORD_PEPPER` (klucz poza bazą) kradzież samej bazy nie wystarcza do łamania haseł. Stare hashe SHA-256 działają i są podmieniane przy pierwszym logowaniu. **Zmiana lub utrata klucza unieważnia wszystkie hasła.**
 - Wcześniej był ręcznie pisany JWT. Zastąpiła go sesja, bo to jedna aplikacja z SSR, a własnej kryptografii nie warto utrzymywać (patrz `docs/STATUS.md`).
 - Podział ról:
   - `admin` — zarządzanie personelem i sprzętem,

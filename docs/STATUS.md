@@ -2,7 +2,7 @@
 
 Aktualizuj ten plik w tym samym commicie, w którym zmienia się kod lub decyzja. Cel: poniżej 150 linii.
 
-**Ostatnia aktualizacja:** 2026-10-24 · **Wersja:** 1.0.0 · **Testy:** `npm test` (39 przechodzą)
+**Ostatnia aktualizacja:** 2026-10-24 · **Wersja:** 1.0.0 · **Testy:** `npm test` (44 przechodzą)
 
 ## 1. Czym jest projekt
 
@@ -21,6 +21,7 @@ Dane wpadają przez TCP (ESP32) lub HTTP, są parsowane, walidowane kontraktem i
 | `src/controllers/` | `lab.controller.js` (akcje POST), `view.controller.js` (widoki SSR) |
 | `src/middlewares/auth.middleware.js` | RBAC na podstawie sesji |
 | `src/utils/csrf.js` | Blokada żądań cross-site (Sec-Fetch-Site, Origin) dla każdego POST, wpięta w router |
+| `src/utils/password.js` | Hasła: scrypt + sól + opcjonalny pepper (`PASSWORD_PEPPER`), migracja starych SHA-256 |
 | `src/utils/session.js` | Sesje: losowy id w ciasteczku, skrót SHA-256 w tabeli `sessions`, TTL 8 h |
 | `src/utils/logger.js` | Logi JSON, ID korelacji żądania, maskowanie sekretów |
 | `src/utils/anomalyMonitor.js`, `detective.js`, `errorHandler.js` | Alerty okna czasowego, obserwacja stanu, ochrona procesu |
@@ -50,12 +51,12 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 
 ## 5. Znane problemy i słabości (stan faktyczny)
 
-- Hasła: SHA-256 **bez soli** (w produkcji bcrypt/argon2).
+- Hasła: własne opakowanie na `scrypt` z `node:crypto` (nie biblioteka bcrypt/argon2). Pepper jest opcjonalny: bez `PASSWORD_PEPPER` działa sama sól. Zmiana klucza psuje wszystkie hasła, a rotacji klucza nie ma.
+- Domyślne hasło seedowe nadal jest znane (`SEED_DEFAULT_PASSWORD`); w produkcji ustaw własne.
 - Sesje: własna implementacja (nie biblioteka). Brak limitu prób logowania.
 - Nie ma już REST-owego uwierzytelniania nagłówkiem `Authorization: Bearer`; API działa na sesji z ciasteczka (klient nieprzeglądarkowy musi najpierw się zalogować i przenosić ciasteczko).
 - TCP zapisuje pomiary z zakodowanym `user_id = 1`.
 - Brak limitu rozmiaru bufora TCP i brak rate limitingu.
-- Domyślne hasła użytkowników seedowych.
 - Zakresy kontraktu (gęstość 300–1200 kg/m³, temperatura −50–100 °C) to **założenia**, nie dane z aparatu.
 - Przepływ `deploy.sh` nie był sprawdzony na prawdziwym Dockerze; backup wymaga Node 24 na hoście.
 - Wyniki `perf` pochodzą z lokalnego loopbacku, nie z produkcji.
@@ -81,4 +82,5 @@ Izolowana baza do testów: zmienna `DB_DIR`.
 | 2026-10-24 | `docs/STATUS.md` i `AGENTS.md` |
 | 2026-10-24 | JWT zastąpione sesją w ciasteczku (`session.js`, `POST /logout`), 8 nowych testów |
 | 2026-10-24 | Ochrona CSRF (`csrf.js`), test blokady fałszywego POST |
+| 2026-10-24 | Hasła: scrypt + sól + pepper, automatyczna migracja starych hashy, 5 testów |
 | 2026-10-25 | Naprawa `deploy.sh` (stary nic nie robił), osobne dane per środowisko, backup/restore bazy, dziennik wdrożeń |

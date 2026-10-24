@@ -15,6 +15,7 @@ services:
       - NODE_ENV=staging
       - APP_VERSION=${APP_VERSION_TAG:-staging-latest}
       - IS_DOCKER=true
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:-}
 
   # --- ŚRODOWISKO PRODUKCYJNE (PORT 80) ---
   lab-app-production:
@@ -32,6 +33,7 @@ services:
       - NODE_ENV=production
       - APP_VERSION=${APP_VERSION_TAG:-v1.0.0}
       - IS_DOCKER=true
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:-}
     deploy:
       update_config:
         order: start-first
