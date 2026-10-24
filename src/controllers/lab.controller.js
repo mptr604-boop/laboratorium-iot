@@ -9,7 +9,9 @@ import { checkRoleAndPermissions } from '../middlewares/auth.middleware.js';
 import { redisLikeCache } from '../utils/cache.js';
 import { parseLegacyDeviceOutput } from '../utils/parser.js';
 import { anomalyMonitor } from '../utils/anomalyMonitor.js';
+import { createLogger, fingerprint } from '../utils/logger.js';
 
+const log = createLogger('lab');
 async function parseRequestBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -39,21 +41,26 @@ export const labController = {
       const body = await parseRequestBody(req);
       const user = dbOperations.getUserByUsername(body.username);
       if (!user) {
+        // Unknown user: the typed value may be a mistyped password, so only a hash is logged.
+        log.warn('login.failed', { reason: 'unknown_user', username_hash: fingerprint(body.username) });
         res.writeHead(302, { 'Location': '/login?error=' + encodeURIComponent('Nieprawidłowy login lub hasło') });
         return res.end();
       }
       const sentPasswordHash = crypto.createHash('sha256').update(body.password || '').digest('hex');
       if (sentPasswordHash === user.password_hash) {
         const token = generateJWT({ id: user.id, username: user.username, role: user.role });
+        log.info('login.succeeded', { user_id: user.id, role: user.role });
         res.writeHead(302, {
           'Set-Cookie': `auth_token=${token}; HttpOnly; Path=/; Max-Age=28800; SameSite=Strict`,
           'Location': '/dashboard'
         });
         return res.end();
       }
+      log.warn('login.failed', { reason: 'wrong_password', user_id: user.id });
       res.writeHead(302, { 'Location': '/login?error=' + encodeURIComponent('Nieprawidłowy login lub hasło') });
       return res.end();
-    } catch {
+    } catch (err) {
+      log.error('login.error', { err });
       res.writeHead(302, { 'Location': '/login?error=' + encodeURIComponent('Błąd serwera') });
       return res.end();
     }
@@ -146,7 +153,7 @@ export const labController = {
       res.writeHead(302, { 'Location': '/dashboard' });
       return res.end();
     } catch (err) {
-      console.error('[CRITICAL-DIAGNOSTIC]', err);
+      log.error('measurement.create_failed', { err });
       res.writeHead(302, { 'Location': '/dashboard?error=' + encodeURIComponent('Błąd zapisu badania.') });
       return res.end();
     }

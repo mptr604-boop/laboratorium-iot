@@ -1,6 +1,10 @@
 // src/utils/anomalyMonitor.js
 // Windowed Rate-Limiting Anomaly Alerting Engine
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('anomaly');
+
 // In-memory registry tracking error timestamps for sliding-window anomaly detection
 const incidentRegistry = {
   ERR_CODE_HARDWARE_FAILURE: [],
@@ -40,7 +44,11 @@ export const anomalyMonitor = {
     // Sliding window filter: purge entries older than window duration
     incidentRegistry[normalizedType] = incidentRegistry[normalizedType].filter(timestamp => now - timestamp <= TIME_WINDOW_MS);
 
-    console.log(`[ANOMALY-ENGINE] Incident registered [${normalizedType}]. Count in sliding 30s window: ${incidentRegistry[normalizedType].length}/${MAX_INCIDENTS}`);
+    log.warn('incident.registered', {
+      type: normalizedType,
+      count_in_window: incidentRegistry[normalizedType].length,
+      threshold: MAX_INCIDENTS,
+    });
 
     // Trigger alert if threshold exceeded
     if (incidentRegistry[normalizedType].length >= MAX_INCIDENTS) {
@@ -60,7 +68,7 @@ export const anomalyMonitor = {
       const isDuplicate = activeInfrastructureAlerts.some(a => a.type === normalizedType && a.message === newAlert.message);
       if (!isDuplicate) {
         activeInfrastructureAlerts.push(newAlert);
-        console.error(`[ANOMALY-ALERT-TRIGGERED] 🔥 Critical alert state triggered! Broadcast dispatched.`);
+        log.error('alert.triggered', { alert_id: alertId, type: normalizedType, context: contextMessage });
       }
     }
   },
@@ -77,7 +85,7 @@ export const anomalyMonitor = {
    */
   clearAlert: (alertId) => {
     activeInfrastructureAlerts = activeInfrastructureAlerts.filter(a => a.id !== alertId);
-    console.log(`[ANOMALY-ENGINE] Alert ID [${alertId}] acknowledged and dismissed.`);
+    log.info('alert.acknowledged', { alert_id: alertId });
   },
 
   // Backward compatibility aliases

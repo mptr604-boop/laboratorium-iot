@@ -2,12 +2,18 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('db');
 
 const IS_DOCKER = process.env.IS_DOCKER === 'true';
 
-const DB_DIR = IS_DOCKER 
-  ? '/app/storage' 
-  : path.join(process.cwd(), 'src', 'storage');
+// DB_DIR lets tests and load tests use an isolated database.
+const DB_DIR = process.env.DB_DIR
+  ? process.env.DB_DIR
+  : IS_DOCKER 
+    ? '/app/storage' 
+    : path.join(process.cwd(), 'src', 'storage');
 
 if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
@@ -23,4 +29,4 @@ export const db = new DatabaseSync(DB_FILE_PATH);
 db.exec("PRAGMA journal_mode = WAL;");
 db.exec("PRAGMA busy_timeout = 5000;");
 
-console.log(`[DB-CONFIG] Połączono w trybie WAL z SQLite: ${DB_FILE_PATH}`);
+log.info('database.connected', { journal_mode: 'wal', path: DB_FILE_PATH });

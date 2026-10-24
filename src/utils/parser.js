@@ -1,6 +1,10 @@
 // src/utils/parser.js
 // Industrial RegEx parser with automatic hardware failure detection
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('parser');
+
 /**
  * Parses raw legacy laboratory measurement printout stream.
  * Supports standard measurement frames and explicit hardware error statuses ('err').
@@ -12,7 +16,7 @@ export function parseLegacyDeviceOutput(rawText) {
 
   // 1. HARDWARE FAILURE DETECTION (Device reports explicit 'err' / 'error')
   if (text.toLowerCase().includes('err') || text.toLowerCase().includes('error')) {
-    console.warn(`[HARDWARE-MONITOR] 🚨 Hardware error status received from IoT device!`);
+    log.warn('device.error_status', { reason: 'device printout contains err/error' });
     const errStatus = 'AWARIA APARATU (ERR)';
     return {
       density: 'ERR',

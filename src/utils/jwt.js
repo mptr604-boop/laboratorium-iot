@@ -1,6 +1,8 @@
 // src/utils/jwt.js
 import crypto from 'node:crypto';
+import { createLogger } from './logger.js';
 
+const log = createLogger('jwt');
 const JWT_SECRET = process.env.JWT_SECRET || 'lab_jwt_dev_secret_change_in_production_2026';
 
 /**
@@ -46,7 +48,7 @@ export function weryfikujJWT(token) {
       .digest('base64url');
       
     if (signature !== expectedSignature) {
-      console.error("[JWT-ERROR] Wykryto niepoprawny lub zmodyfikowany podpis cyfrowy tokenu!");
+      log.warn('token.invalid_signature');
       return null;
     }
 

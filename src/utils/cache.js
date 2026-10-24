@@ -2,7 +2,9 @@
 // Native in-memory/SQLite cache engine with TTL and SQL LIKE pattern invalidation
 
 import { db } from '../config/database.js';
+import { createLogger } from './logger.js';
 
+const log = createLogger('cache');
 // Initialize cache table schema if not already present
 db.exec(`
   CREATE TABLE IF NOT EXISTS app_cache (
@@ -52,6 +54,6 @@ export const redisLikeCache = {
    */
   invalidate: (keyPattern) => {
     db.prepare('DELETE FROM app_cache WHERE cache_key LIKE ?').run(keyPattern);
-    console.log(`[CACHE-INVALIDATE] Cache invalidated for pattern: ${keyPattern}`);
+    log.debug('invalidated', { pattern: keyPattern });
   }
 };

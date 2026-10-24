@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { labController } from '../controllers/lab.controller.js';
 import { viewController } from '../controllers/view.controller.js';
+import { createLogger } from '../utils/logger.js';
 
+const log = createLogger('router');
 /**
  * Main HTTP router
  * @param {import('node:http').IncomingMessage} req 
@@ -110,7 +112,7 @@ export async function handleRouting(req, res) {
 
   // --- DIAGNOSTIC TEST TRIGGER ---
   if (req.method === 'GET' && url.pathname === '/api/test-crash') {
-    console.log('[DIAGNOSTIC] Triggering intentional diagnostic test event...');
+    log.debug('diagnostic.crash_trigger');
     const { dbDetective } = await import('../utils/detective.js');
     dbDetective.getUserByUsername(undefined);
     dbDetective.getUserByUsername(undefined);

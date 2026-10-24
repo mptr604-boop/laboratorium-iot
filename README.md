@@ -50,6 +50,19 @@ Backend działa wyłącznie na modułach standardowych Node.js:
 - Centralny handler wyjątków (`errorHandler.js`) zapobiegający wyłożeniu procesu.
 - Moduł `anomalyMonitor.js` zliczający powtarzające się awarie aparatów w oknach czasowych.
 
+### 6. Logowanie strukturalne (`src/utils/logger.js`)
+Własny logger bez zależności: jedna linia JSON na zdarzenie, więc logi da się filtrować (`jq`) zamiast przeszukiwać tekst.
+- **`request_id`** – każde żądanie HTTP dostaje ID (lub przejmuje bezpieczny `X-Request-Id` od klienta), zwracane w nagłówku i w błędzie 500. Dzięki `AsyncLocalStorage` trafia do każdego logu z danego żądania, także po `await`.
+- **Jedno podsumowanie na żądanie** (`request.completed`): metoda, ścieżka bez query, status, czas; poziom zależy od statusu (5xx → `error`, 4xx → `warn`).
+- **TCP/ESP32**: `connection_id`, zdarzenia `frame.saved` / `frame.rejected` z powodem odrzucenia.
+- **Bezpieczeństwo**: klucze typu `password`, `token`, `authorization` są maskowane; token urządzenia i login logowane tylko jako krótki hash.
+- **Konfiguracja**: `LOG_LEVEL` (`debug|info|warn|error`), `LOG_FORMAT=pretty` dla czytelnego formatu lokalnie.
+
+```bash
+node src/http_server.js | jq 'select(.level=="error")'
+node src/http_server.js | jq 'select(.request_id=="<id z nagłówka>")'
+```
+
 ---
 
 ## 📁 Struktura projektu

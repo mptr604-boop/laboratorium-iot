@@ -7,7 +7,9 @@ import { dbOperations } from '../models/db.operations.js';
 import { verifyJWT } from '../utils/jwt.js';
 import { redisLikeCache } from '../utils/cache.js';
 import { anomalyMonitor } from '../utils/anomalyMonitor.js';
+import { createLogger } from '../utils/logger.js';
 
+const log = createLogger('view');
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
@@ -45,16 +47,16 @@ export const viewController = {
     if (activeAlerts.length === 0) {
       cachedHTML = redisLikeCache.get(cacheKey);
     } else {
-      console.log(`[HTTP-CACHE] ⚠️ Critical Bypass! Active hardware/telemetry alerts detected.`);
+      log.info('dashboard.cache_bypass', { reason: 'active_alerts', active_alerts: activeAlerts.length });
     }
 
     if (cachedHTML) {
-      console.log(`[HTTP-CACHE] ⚡ Cache hit! Serving Dashboard from cache.`);
+      log.debug('dashboard.cache_hit');
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Cache': 'HIT' });
       return res.end(cachedHTML);
     }
 
-    console.log(`[HTTP-CACHE] ❌ Cache miss. Calculating sliding windows and LIMS data...`);
+    log.debug('dashboard.cache_miss');
     const limit = 5; 
     const offset = (page - 1) * limit;
 

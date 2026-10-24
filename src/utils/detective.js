@@ -4,8 +4,10 @@
 import { dbOperations } from '../models/db.operations.js';
 import { anomalyMonitor } from './anomalyMonitor.js'; // INTEGRACJA Z MONITOREM ANOMALII
 
-const ENV = process.env.NODE_ENV || 'development';
+import { createLogger } from './logger.js';
 
+const ENV = process.env.NODE_ENV || 'development';
+const log = createLogger('detective');
 // Rejestr aktywnych procesów obserwujących w pamięci RAM
 let aktywneSubskrypcje = [];
 
@@ -23,7 +25,7 @@ export const detectiveObservable = {
       ZapietyAt: new Date().toISOString()
     });
     
-    console.log(`[DETEKTYW-OBSERVABLE] Zapięto subskrypcję: [${nazwaProcesu}] (ID: ${subskrypcjaId})`);
+    log.debug('subscriber.added', { process: nazwaProcesu, subscription_id: subskrypcjaId });
     return subskrypcjaId;
   },
 
@@ -35,7 +37,7 @@ export const detectiveObservable = {
     if (indeks !== -1) {
       const nazwaUsunietego = aktywneSubskrypcje[indeks].proces;
       aktywneSubskrypcje.splice(indeks, 1);
-      console.log(`[DETEKTYW-OBSERVABLE] Wyrejestrowano proces: [${nazwaUsunietego}] (ID: ${subskrypcjaId})`);
+      log.debug('subscriber.removed', { process: nazwaUsunietego, subscription_id: subskrypcjaId });
     }
   },
 
@@ -54,7 +56,7 @@ export const detectiveObservable = {
       try {
         sub.callback(komunikat);
       } catch (err) {
-        console.error(`[DETEKTYW-ALERT-FAIL] Proces [${sub.proces}] wywalił się: ${err.message}`);
+        log.error('subscriber.failed', { process: sub.proces, err });
       }
     });
   }
@@ -108,13 +110,13 @@ Object.keys(dbOperations).forEach(kluczMetody => {
 
 // --- DOŁĄCZENIE FABRYCZNYCH OBSERWATORÓW SYSTEMOWYCH ---
 detectiveObservable.subscribe('Konsolowy_Agent_Diagnostyczny', (alarm) => {
-  console.error(`[DETEKTYW-ALARM] Środowisko: ${ENV.toUpperCase()} | Kontekst: ${alarm}`);
+  log.error('detective.alarm', { environment: ENV.toUpperCase(), context: alarm });
 });
 
 detectiveObservable.subscribe('Archiwizator_Błędów_SQLite', (alarm) => {
   try {
     dbOperations.logDetectiveBug(ENV.toUpperCase(), alarm);
   } catch (err) {
-    console.error(`[DETEKTYW-CRITICAL] Awaria zapisu logu w bazie: ${err.message}`);
+    log.error('detective.persist_failed', { err });
   }
 });

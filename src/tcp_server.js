@@ -1,12 +1,18 @@
 // src/tcp_server.js
 import net from 'node:net';
+import { randomUUID } from 'node:crypto';
 import { dbOperations } from './models/db.operations.js';
 import { parseLegacyDeviceOutput } from './utils/parser.js';
+import { createLogger, fingerprint } from './utils/logger.js';
 
 const PORT_TCP = process.env.PORT_TCP || 4000;
+const log = createLogger('tcp');
 
 const server = net.createServer((socket) => {
-  console.log(`[TCP] Connection established with IoT device: ${socket.remoteAddress}:${socket.remotePort}`);
+  const connLog = log.child({ connection_id: randomUUID().slice(0, 8) });
+  const openedAt = Date.now();
+  connLog.info('connection.opened', { remote: `${socket.remoteAddress}:${socket.remotePort}` });
+
   let dataAccumulator = '';
   socket.setEncoding('utf8');
 
@@ -23,9 +29,8 @@ const server = net.createServer((socket) => {
         const device = dbOperations.getDeviceByToken(deviceToken);
 
         if (device) {
-          console.log(`[TCP] Authorization successful: ${device.name}. Processing telemetry...`);
           const parsedData = parseLegacyDeviceOutput(rawPrintout);
-          
+
           const nosqlDocument = {
             raw_text: rawPrintout,
             parsed_density: parsedData.density,
@@ -35,11 +40,20 @@ const server = net.createServer((socket) => {
           };
 
           dbOperations.saveMeasurement(device.id, 1, nosqlDocument);
+          connLog.info('frame.saved', {
+            device_id: device.id,
+            device: device.name,
+            fuel_status: parsedData.fuelStatus,
+            frame_bytes: dataAccumulator.length,
+          });
           socket.write('[RESPONSE]|STATUS:OK|[END]');
         } else {
-          console.warn(`[TCP] SECURITY ALERT: Invalid device token: ${deviceToken}`);
+          // Only a hash of the token is logged, so repeated bad tokens can be correlated safely.
+          connLog.warn('frame.rejected', { reason: 'invalid_device_token', credential_hash: fingerprint(deviceToken) });
           socket.write('[RESPONSE]|STATUS:AUTH_FAILED|[END]');
         }
+      } else {
+        connLog.warn('frame.rejected', { reason: 'missing_start_marker', frame_bytes: dataAccumulator.length });
       }
       dataAccumulator = '';
       socket.end();
@@ -47,10 +61,14 @@ const server = net.createServer((socket) => {
   });
 
   socket.on('error', (err) => {
-    console.error(`[TCP] Socket error: ${err.message}`);
+    connLog.error('socket.error', { err });
+  });
+
+  socket.on('close', () => {
+    connLog.info('connection.closed', { duration_ms: Date.now() - openedAt, bytes_read: socket.bytesRead });
   });
 });
 
 server.listen(PORT_TCP, '0.0.0.0', () => {
-  console.log(`[TCP-SERVER] IoT hardware acquisition layer listening on port: ${PORT_TCP}`);
+  log.info('server.listening', { port: Number(PORT_TCP) });
 });
