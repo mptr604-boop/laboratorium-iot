@@ -9,7 +9,8 @@
     "tcp": "node src/tcp_server.js",
     "mock:esp32": "node src/mock_esp32.js",
     "seed": "node src/seed.js",
-    "test": "node --test 'src/test/*.test.js'"
+    "test": "node --test 'src/test/*.test.js'",
+    "perf": "node scripts/perf-test.js"
   },
   "keywords": [
     "iot",

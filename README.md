@@ -63,6 +63,23 @@ node src/http_server.js | jq 'select(.level=="error")'
 node src/http_server.js | jq 'select(.request_id=="<id z nagłówka>")'
 ```
 
+### 7. Powtarzalny pomiar wydajności
+Wbudowany skrypt mierzy równolegle obsługę `GET /login` po HTTP keep-alive oraz zapis poprawnych ramek pomiarowych przez TCP. Serwery i seedowane SQLite WAL uruchamiane są dla testu na osobnych portach i tymczasowej bazie; po zakończeniu dane testowe są usuwane. Nie wymaga dodatkowych pakietów.
+
+```bash
+npm run perf
+# Opcjonalnie: PERF_DURATION_SECONDS=10 PERF_CONCURRENCY=20 npm run perf
+```
+
+Lokalny baseline z **czterech uruchomień** (mediana; zakres w nawiasach), Node.js 24.22.0, Linux x64, Intel Core i7-1185G7, 8 logicznych CPU; każde uruchomienie trwało 5 s na scenariusz przy współbieżności 10:
+
+| Scenariusz | Żądania/s (mediana; min–max) | p95 (mediana; min–max) | Błędy |
+|---|---:|---:|---:|
+| HTTP `GET /login` (keep-alive) | 19 496,7 (16 015,6–21 566,2) | 0,94 ms (0,87–1,08) | 0 |
+| TCP: poprawna ramka i zapis pomiaru (nowe połączenie na ramkę) | 7 444,9 (7 230,6–9 133,4) | 1,83 ms (1,62–1,90) | 0 |
+
+To lokalny test pętli zwrotnej, nie gwarancja przepustowości na produkcji: nie obejmuje TLS, sieci zewnętrznej ani wielu procesów/maszyn. HTTP mierzy wyłącznie publiczny widok logowania, a TCP obejmuje walidację tokenu, parsowanie i zapis jednego pomiaru w SQLite. Wyniki służą jako punkt odniesienia do porównań na tym samym sprzęcie.
+
 ---
 
 ## 📁 Struktura projektu
@@ -75,6 +92,8 @@ laboratorium-iot/
 │   └── deploy.sh              # Skrypt wdrożeniowy Zero-Downtime oparty na symlinkach
 ├── images/
 │   └── dashboard.png          # Zrzut ekranu pulpitu LIMS
+├── scripts/
+│   └── perf-test.js           # Lokalny benchmark HTTP i TCP (bez zależności)
 ├── src/
 │   ├── config/
 │   │   └── database.js        # Konfiguracja SQLite (DatabaseSync + WAL mode)
@@ -88,12 +107,14 @@ laboratorium-iot/
 │   ├── routes/
 │   │   └── app.router.js      # Centralny router żądań HTTP
 │   ├── test/
-│   │   └── app.test.js        # Testy automatyczne (prawa dostępu, cache, parser, JWT)
+│   │   ├── app.test.js        # Testy automatyczne (prawa dostępu, cache, parser, JWT)
+│   │   └── logger.test.js     # Testy loggera oraz integracyjny test HTTP
 │   ├── utils/
 │   │   ├── anomalyMonitor.js  # Telemetria awarii i monitor progów paliwa
 │   │   ├── cache.js           # Silnik Cache TTL z obsługą wzorców LIKE
 │   │   ├── errorHandler.js    # Globalny system łapania crashów
 │   │   ├── jwt.js             # Generator i walidator natywnego JWT
+│   │   ├── logger.js          # Logowanie JSON, poziomy i korelacja requestów
 │   │   ├── parser.js          # Parser surowych wydruków aparatów (RegEx)
 │   │   └── uploader.js        # Parser formularzy multipart z załącznikami
 │   ├── views/                 # Szablony HTML/CSS oraz obsługa PWA (manifest, sw.js)
@@ -133,16 +154,9 @@ Domyślne konta testowe:
 ```bash
 npm test
 ```
-Wszystkie testy wykonywane są natywnym runnerem Node.js:
+Testy obejmują RBAC, cache, parser, JWT, logger, redakcję danych oraz integracyjny test HTTP. Uruchamia je natywny runner Node.js:
 ```text
-✔ Prawa dostępu - Młodszy badacz powinien móc usunąć badanie, które sam zlecił
-✔ Prawa dostępu - Młodszy badacz musi otrzymać odmowę przy próbie usunięcia CUDZEGO badania
-✔ Prawa dostępu - Starszy badacz (badacz_super) musi mieć prawo usunąć dowolne badanie
-✔ Redis-like Cache - Powinien zapisać dane i pomyślnie je odczytać przed czasem wygasania TTL
-✔ Redis-like Cache - Inwalidacja powinna masowo usuwać klucze pasujące do wzorca SQL LIKE
-✔ Parser RegEx - Weryfikacja podstawowa
-✔ Natywny JWT - Weryfikacja podstawowa
-ℹ pass 7 | fail 0
+ℹ pass 16 | fail 0
 ```
 
 ### 4. Uruchomienie aplikacji
